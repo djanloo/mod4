@@ -2,29 +2,29 @@
 
 generate:
 	@make clear
-	@python -m dummy_pkg.setup
+	@python -m mod4.setup
 
 profile:
 	@make clear
-	@python -m dummy_pkg.setup --profile
+	@python -m mod4.setup --profile
 
 notrace:
 	@make clear
-	@python -m dummy_pkg.setup --notrace
+	@python -m mod4.setup --notrace
 
 hardcore:
 	make clear
-	@python -m dummy_pkg.setup --hardcore
+	@python -m mod4.setup --hardcore
 
 hardcoreprofile:
 	make clear
-	@python -m dummy_pkg.setup --hardcore --profile
+	@python -m mod4.setup --hardcore --profile
 
 clear:
 	@echo "Cleaning all.."
-	@rm -f dummy_pkg/*.c
-	@rm -f dummy_pkg/*.so
-	@rm -f dummy_pkg/*.html
-	@rm -R -f dummy_pkg/build
-	@rm -R -f dummy_pkg/__pycache__
+	@rm -f mod4/*.c
+	@rm -f mod4/*.so
+	@rm -f mod4/*.html
+	@rm -R -f mod4/build
+	@rm -R -f mod4/__pycache__
 	@echo "Cleaned."
