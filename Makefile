@@ -2,23 +2,23 @@
 
 generate:
 	@make clear
-	@python -m mod4.setup
+	@python3 -m mod4.setup
 
 profile:
 	@make clear
-	@python -m mod4.setup --profile
+	@python3 -m mod4.setup --profile
 
 notrace:
 	@make clear
-	@python -m mod4.setup --notrace
+	@python3 -m mod4.setup --notrace
 
 hardcore:
 	make clear
-	@python -m mod4.setup --hardcore
+	@python3 -m mod4.setup --hardcore
 
 hardcoreprofile:
 	make clear
-	@python -m mod4.setup --hardcore --profile
+	@python3 -m mod4.setup --hardcore --profile
 
 clear:
 	@echo "Cleaning all.."

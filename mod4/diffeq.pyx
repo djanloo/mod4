@@ -100,6 +100,7 @@ cpdef preburgers(double [:] u0, double v=0.5, double dx=0.1, double dt=0.1, int 
 
   cdef int i, _
   cdef double left, right
+  cdef r = dt/dx # not sure about this
 
   for _ in range(n_steps):
 
