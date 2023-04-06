@@ -4,23 +4,15 @@ import seaborn as sns;
 from mod4.diffeq import FTCS, LAX, LAX_WENDROFF, burgers_lw
 
 N = 5000
-Ntimes = 10
+Ntimes = 11
 x = np.linspace(0, 1, N, endpoint=False)
 
-# u0 = np.zeros(N)
-# for i in range(1,50):
-#     u0 += np.sin(i*3*2*np.pi*x)
 
-# u0 = np.exp(-(x-0.5)**2/0.025)
-
-# u0 = np.exp(-((x - 0.2)/0.05)**60)
-
-
-u0 = 0.07*np.sin(100*2*np.pi*x)*np.exp(-((x-0.3)/0.02)**2) + 13.7
-
+# u0 = 0.07*np.sin(100*2*np.pi*x)*np.exp(-((x-0.3)/0.02)**2) + 13.7
+u0 = np.sin(2*np.pi*x)+1
 dx = x[1]-x[0]
 
-integration_args = dict(dx=dx, dt=1e-6, n_steps=5e3)
+integration_args = dict(dx=dx, dt=1e-6, n_steps=8e3)
 
 fig, (axx, axk) = plt.subplots(2,1)
 colors = sns.color_palette("flare", Ntimes)
