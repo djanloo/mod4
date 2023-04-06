@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 import seaborn as sns;
-from mod4.diffeq import FTCS, LAX, LAX_WENDROFF, preburgers
+from mod4.diffeq import FTCS, LAX, LAX_WENDROFF
 
 N = 2000
 Ntimes = 10
