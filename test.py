@@ -1,18 +1,18 @@
 import numpy as np
 from matplotlib import pyplot as plt
 import seaborn as sns;
-from mod4.diffeq import FTCS, LAX, LAX_WENDROFF, burgers_lw, heat_cn
+from mod4.diffeq import FTCS, LAX, LAX_WENDROFF, burgers_lw, heat_cn, diff_advec
 
 N = 300
-Ntimes = 20
+Ntimes = 3
 x = np.linspace(0, 1, N, endpoint=False)
 
 
-u0 = np.sin(3*2*np.pi*x) + 5 + 0.5*np.sin(6*2*np.pi*x) + 0.2*np.sin(20*2*np.pi*x) 
-u0 = np.exp(-((x-0.5)/0.01)**2)
+u0 = np.sin(5*2*np.pi*x) + 0.5*np.sin(6*2*np.pi*x) + 0.2*np.sin(20*2*np.pi*x) + 0.5*np.sin(30*2*np.pi*x) 
+# u0 = 0.1*np.exp(-((x-0.5)/0.01)**2)
 dx = x[1]-x[0]
 
-integration_args = dict(dx=dx, dt=5e-7, n_steps=3e2, nu=0.1)
+integration_args = dict(dx=dx, dt=5e-7, n_steps=1e3, nu=0.1, c=30.0)
 
 fig, (axx, axk) = plt.subplots(2,1)
 colors = sns.color_palette("flare", Ntimes)
@@ -25,7 +25,7 @@ axx.plot(x, u, color='b', marker='.')
 # axx.plot(x + 1, u, color='b', marker=".")
 
 for i in range(Ntimes):
-    u = heat_cn(u, **integration_args)
+    u = diff_advec(u, **integration_args)
 
     axx.plot(x, u, color=colors[i])
     # axx.plot(x + 1, u, color=colors[i])

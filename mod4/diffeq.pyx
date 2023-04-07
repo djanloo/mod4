@@ -194,42 +194,77 @@ def heat_cn(double [:] u0, double nu=0.1, double dx=0.1, double dt=0.1, int n_st
     u = u_next.copy()
   return np.array(u)
 
-def heat_cn_inv(double [:] u0, double nu =0.1, double dx=0.1, double dt=0.1, int n_steps = 10):
+# def heat_cn_inv(double [:] u0, double nu =0.1, double dx=0.1, double dt=0.1, int n_steps = 10):
 
-  cdef int N = len(u0), i
-  cdef double alpha = 0.5*nu*dt/dx**2, left, right
-  print(f"Crank-Nicolson - exact inversion: alpha = {alpha}")
+#   cdef int N = len(u0), i
+#   cdef double alpha = 0.5*nu*dt/dx**2, left, right
+#   print(f"Crank-Nicolson - exact inversion: alpha = {alpha}")
 
-  cdef double [:,:] A = np.zeros((N, N), dtype='float64'), B=np.zeros((N,N), dtype='float64')
+#   cdef double [:,:] A = np.zeros((N, N), dtype='float64'), B=np.zeros((N,N), dtype='float64')
 
-  # builds A and B
-  for i in range(N):
-    A[i, i] = 1 + 2*alpha
-    if i < N-1:
-      A[i, i+1] = -alpha
-    if i >= 1:
-      A[i, i-1] = -alpha 
+#   # builds A and B
+#   for i in range(N):
+#     A[i, i] = 1 + 2*alpha
+#     if i < N-1:
+#       A[i, i+1] = -alpha
+#     if i >= 1:
+#       A[i, i-1] = -alpha 
 
-    B[i,i] = 1 - 2*alpha
-    if i < N-1:
-      B[i, i+1] = alpha
-    if i >= 1:
-      B[i, i-1] = alpha 
+#     B[i,i] = 1 - 2*alpha
+#     if i < N-1:
+#       B[i, i+1] = alpha
+#     if i >= 1:
+#       B[i, i-1] = alpha 
 
   
-  A[0, N-1] = -alpha 
-  A[N-1, 0] = -alpha
+#   A[0, N-1] = -alpha 
+#   A[N-1, 0] = -alpha
 
-  B[0, N-1] = alpha 
-  B[N-1, 0] = alpha
+#   B[0, N-1] = alpha 
+#   B[N-1, 0] = alpha
 
-  A , B = np.array(A), np.array(B)
+#   A , B = np.array(A), np.array(B)
 
-  cdef np.ndarray C = np.linalg.matrix_power( np.linalg.inv(A).dot(B), n_steps)
+#   cdef np.ndarray C = np.linalg.matrix_power( np.linalg.inv(A).dot(B), n_steps)
 
-  u = C.dot(u0)
+#   u = C.dot(u0)
 
+#   return np.array(u)
+
+
+def diff_advec(double [:] u0, double nu=0.1, double c=0.1, double dx=0.1, double dt=0.1, int n_steps = 10):
+  cdef int N = len(u0), i, _
+  cdef double alpha = 0.5*nu*dt/dx**2, beta = c*dt/4/dx, left = 0.0, right = 0.0
+  print(f"Diffusion-Advection - tridiagonal iterative: alpha = {alpha}, beta = {beta}")
+
+  cdef double [:] u       = u0.copy()                       # current time
+  cdef double [:] u_next  = u0.copy()
+  cdef double [:] d       = np.zeros(N, dtype="float64")    # the vector of constants
+
+  # Builds the tridiagonal matrix
+  cdef double [:] diagonal        =  (1+2*alpha) *np.ones(N, dtype="float64")   
+  cdef double [:] upper_diagonal  = +(beta-alpha)*np.ones(N, dtype="float64")
+  cdef double [:] lower_diagonal  = -(beta+alpha)*np.ones(N, dtype="float64")
+  evolve = lambda x: tridiag(lower_diagonal, diagonal, upper_diagonal, x)  # gets the next iteration with purely tridiag approx
+
+  for _ in range(n_steps):
+
+    # Builds the constant vector
+    for i in range(N):
+      left  = u[i-1] if i != 0   else u[N-1]
+      right = u[i+1] if i != N-1 else u[0]
+      d[i]  = (beta + alpha)*left + (1-2*alpha)*u[i] + (alpha-beta)*right
+
+      if i == 0:
+        d[i] += (alpha + beta)*u[N-1] 
+      if i == N-1:
+        d[i] += (alpha - beta)*u[0]
+
+    # Solves the tridiagonal system for the next time
+    # print(f"lowdiag = {np.array(lower_diagonal)}")
+    # print(f"updiag = {np.array(upper_diagonal)}")
+    u_next = evolve(d)
+
+    u = u_next.copy()
   return np.array(u)
-
-
 

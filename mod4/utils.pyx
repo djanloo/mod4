@@ -5,7 +5,7 @@ cpdef tridiag(double [:] lower, double [:] diag, double [:] upper, double [:] d)
     cdef int N = len(diag)
     cdef int i
     cdef double [:] x = np.zeros(N, dtype="float64")
-    cdef double [:] a = lower.copy(), b = diag.copy(), c = lower.copy()
+    cdef double [:] a = lower.copy(), b = diag.copy(), c = upper.copy()
 
     A = np.zeros((N,N))
 
@@ -15,9 +15,12 @@ cpdef tridiag(double [:] lower, double [:] diag, double [:] upper, double [:] d)
             A[i, i-1] = a[i-1]
         if i < N-1:
             A[i, i+1] = c[i]
-    # print(f"b = {np.array(b)}")
-    # print(f"a = {np.array(a)}")
-    # print(f"A = {A}")
+
+    # print(f"tri: a = {np.array(a)}")
+    # print(f"tri: b = {np.array(b)}")
+    # print(f"tri: c = {np.array(c)}")
+
+    # print(f"tri :A = {A}")
 
 
     for i in range(N-1):
