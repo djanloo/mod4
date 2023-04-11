@@ -3,22 +3,22 @@ from matplotlib import pyplot as plt
 import seaborn as sns;
 from mod4.diffeq import FTCS, LAX, LAX_WENDROFF, burgers_lw, heat_cn, diff_advec, burgers_cn
 
-N = 1000
+N = 500
 Ntimes = 3
 x = np.linspace(0, 3, N, endpoint=False)
 
 
-u0 = 1 + 0.05*np.sin(10*2*np.pi*x)*np.exp(-((x-0.8)/0.2)**2) #+ 0.5*np.sin(7*2*np.pi*x) + 0.2*np.sin(20*2*np.pi*x) + 0.5*np.sin(30*2*np.pi*x) + 0.5*np.sin(31*2*np.pi*x)
-# u0 = 1+2*np.exp(-((x-0.5)/0.1)**2)
+# u0 = 1 + 0.05*np.sin(10*2*np.pi*x)*np.exp(-((x-0.8)/0.2)**2) #+ 0.5*np.sin(7*2*np.pi*x) + 0.2*np.sin(20*2*np.pi*x) + 0.5*np.sin(30*2*np.pi*x) + 0.5*np.sin(31*2*np.pi*x)
+u0 = np.exp(-((x-0.5)/0.1)**2)
 # u0 = 2+np.sin(3*2*np.pi*x)
 
 # u0 = 0.5*(u0 + u0[::-1])
 dx = x[1]-x[0]
 
 integration_args = dict(
-                        dx=dx, dt=1e-5,
-                        n_steps=1e5, 
-                        nu=0.0001
+                        dx=dx, dt=5e-4,
+                        n_steps=500, 
+                        nu=0.01
                         )
 
 fig, (axx, axk) = plt.subplots(2,1)

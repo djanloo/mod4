@@ -269,14 +269,16 @@ def burgers_cn(double [:] u0, double nu=0.1, double dx=0.1, double dt=0.1, int n
   cdef double alpha = 0.5*nu*dt/dx**2, beta = 0.5*dt/dx, left = 0.0, right = 0.0
   print(f"Burgers - Crank-Nicolson: alpha = {alpha}, beta = {beta}")
 
-  cdef double [:] u = u0.copy()                       # current time
+  cdef double [:] u = u0.copy()      # current time
   cdef double [:] d = np.zeros(N)    # the vector of constants
 
   # Builds the tridiagonal matrix
   cdef double [:] diagonal        = (1+2*alpha)*np.ones(N)   
   cdef double [:] upper_diagonal  = (-alpha)*np.ones(N)
   cdef double [:] lower_diagonal  = (-alpha)*np.ones(N)
-  evolve = lambda x: tridiag(lower_diagonal, diagonal, upper_diagonal, x)  # gets the next iteration with purely tridiag approx
+
+  # Gets the next iteration with purely tridiag approx
+  evolve = lambda x: tridiag(lower_diagonal, diagonal, upper_diagonal, x)  
 
   for _ in range(n_steps):
 
@@ -286,11 +288,12 @@ def burgers_cn(double [:] u0, double nu=0.1, double dx=0.1, double dt=0.1, int n
       right = u[i+1] if i != N-1 else u[0]
       d[i]  = (beta*u[i] + alpha)*left + (1-2*alpha)*u[i] + (alpha-beta*u[i])*right
 
-      # Border conditions
+      # Border conditions/tridiag approx
       if i == 0:
         d[i] += (alpha)*u[N-1] 
       if i == N-1:
         d[i] += (alpha)*u[0]
 
     u = evolve(d)
+
   return np.array(u)
