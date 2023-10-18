@@ -5,6 +5,7 @@ from Cython.Distutils import build_ext
 from Cython.Compiler.Options import get_directive_defaults
 from Cython.Build import cythonize
 
+import numpy as np
 from rich import print
 
 parser = argparse.ArgumentParser()
@@ -17,7 +18,7 @@ args = parser.parse_args()
 # Set the working directory
 old_dir = os.getcwd()
 packageDir = os.path.dirname(__file__)
-includedDir = [packageDir]
+includedDir = [packageDir, np.get_include()]
 os.chdir(packageDir)
 
 extension_kwargs = dict( 

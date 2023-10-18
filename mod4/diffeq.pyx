@@ -268,20 +268,22 @@ cdef funker_plank_a2(x, v):
   return 0.1 * v
 
 cpdef funker_plank(double [:,:] p0, 
-                  double dx=0.1, 
+                  double dx= 0.1, 
                   double dv = 0.1,
-                  double dt=0.1, 
-                  double alpha=1.0, double gamma=0.1, double sigma=0.1, # Physical parameters
+                  double dt= 0.1, 
+                  double alpha= 1.0, double gamma=0.1, double sigma=0.1, # Physical parameters
                   int n_steps = 10):
   ## Updates in Split-operator style
 
   # format of p0 is (N, M) as (x, v)
-  N, M = p0.shape
+  N = p0.shape[0]
+  M = p0.shape[1]
+  
   cdef double [:,:] p = p0.copy(), p_1_3 = p0.copy(), p_2_3 = p0.copy(), p_3_3 = p0.copy()
   cdef double dt_third = dt/3.0
 
-  cdef double [:] upper_x, central_x, lower_x = np.ones(N), np.ones (N), np.ones(M)
-  cdef double [:] upper_v, central_v, lower_v = np.ones(N), np.ones (N), np.ones(M)
+  cdef double [:] upper_x = np.ones(N)
+  cdef double [:] upper_v = np.ones(M)
 
   for t in range(n_steps):
     for i in range(N):
