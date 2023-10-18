@@ -267,31 +267,72 @@ cdef funker_plank_a1(x):
 cdef funker_plank_a2(x, v):
   return 0.1 * v
 
-cpdef funker_plank(double [:,:] p0, 
-                  double dx= 0.1, 
-                  double dv = 0.1,
-                  double dt= 0.1, 
-                  double alpha= 1.0, double gamma=0.1, double sigma=0.1, # Physical parameters
+def funker_plank(double [:,:] p0, 
+                  double [:] x_values, double [:] v_values,
+                  double dt= 0.1, # Integration parameters
+                  double alpha=1.0, double gamma=0.1, double sigma=0.1, # Physical parameters
                   int n_steps = 10):
   ## Updates in Split-operator style
 
-  # format of p0 is (N, M) as (x, v)
-  N = p0.shape[0]
-  M = p0.shape[1]
-  
-  cdef double [:,:] p = p0.copy(), p_1_3 = p0.copy(), p_2_3 = p0.copy(), p_3_3 = p0.copy()
-  cdef double dt_third = dt/3.0
+  cdef int N = len(x_values)
+  cdef int M = len(v_values)
+  print(f"Matrix is {N} (x) times {M}(v)")
+  cdef int t, i, j
 
-  cdef double [:] upper_x = np.ones(N)
-  cdef double [:] upper_v = np.ones(M)
+  cdef double [:,:] p = p0.copy(), p_intermediate = p0.copy(), p_old = p0.copy()
+
+  cdef double dx = np.diff(x_values)[0]
+  cdef double dv = np.diff(v_values)[0]
+
+  cdef double theta = dt/4.0/dv
+  cdef double omega = dt/4.0/dx 
+  cdef double eta = sigma*dt/4.0/dv**2
+
+  # Declarations of the diagonals
+  cdef double [:] lower_x, diagonal_x, upper_x, lower_v, diagonal_v, upper_v, b_x, b_v
+  cdef double right_x, central_x, left_x, right_v, central_v, left_v
+
+  lower_v, upper_v, b_v = np.ones(M), np.ones(M), np.ones(M)
+  diagonal_v = np.ones(M) * (1-eta)
 
   for t in range(n_steps):
+    # First evolution
+    for i in range(N):
+
+      central_x = x_values[i]
+      left_x = x_values[i - 1] if i != 0 else x_values[N-1]
+      right_x= x_values[i + 1] if i != N-1 else x_values[0]
+
+      # Prepares the vectors of coefficients and the constant term
+      for j in range(M):
+        left_p_on_v =  p[i, j-1] if j != 0 else p[i, M-1]
+        right_p_on_v = p[i, j+1] if j != N-1 else p[i, 0]
+
+        left_p_on_x = p[i-1, j] if i != 0 else p[N-1, j]
+        right_p_on_x = p[i+1, j] if i != N-1 else p[0, j]
+
+        central_v = v_values[j]
+        left_v = v_values[j - 1] if j != 0 else v_values[N-1]
+        right_v= v_values[j + 1] if j != N-1 else v_values[0]
+ 
+        lower_v[j] = - theta * (alpha * central_x - gamma * right_v)
+        upper_v[j] =   omega * (alpha * central_x - gamma * left_v)
+
+        b_v[j] =  p[i,j] +\
+                  eta * (right_p_on_v - 2*p[i,j] + left_p_on_v) +\
+                 -omega * central_v * ( right_p_on_x - left_p_on_x)
+
+      # Performs the tridiag in the local i-value
+      row = tridiag(lower_v, diagonal_v, upper_v, b_v)
+
+      for j in range(M):
+        p_intermediate[i, j] = row[j]
+    
     for i in range(N):
       for j in range(M):
-        # First system
         
-        p_1_3[i,j] =  - dt_third 
+  
+    p = p_intermediate
 
-    # First part
-
+  return p_intermediate
 
