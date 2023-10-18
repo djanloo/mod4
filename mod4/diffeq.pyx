@@ -194,43 +194,6 @@ def heat_cn(double [:] u0, double nu=0.1, double dx=0.1, double dt=0.1, int n_st
     u = u_next.copy()
   return np.array(u)
 
-# def heat_cn_inv(double [:] u0, double nu =0.1, double dx=0.1, double dt=0.1, int n_steps = 10):
-
-#   cdef int N = len(u0), i
-#   cdef double alpha = 0.5*nu*dt/dx**2, left, right
-#   print(f"Crank-Nicolson - exact inversion: alpha = {alpha}")
-
-#   cdef double [:,:] A = np.zeros((N, N), dtype='float64'), B=np.zeros((N,N), dtype='float64')
-
-#   # builds A and B
-#   for i in range(N):
-#     A[i, i] = 1 + 2*alpha
-#     if i < N-1:
-#       A[i, i+1] = -alpha
-#     if i >= 1:
-#       A[i, i-1] = -alpha 
-
-#     B[i,i] = 1 - 2*alpha
-#     if i < N-1:
-#       B[i, i+1] = alpha
-#     if i >= 1:
-#       B[i, i-1] = alpha 
-
-  
-#   A[0, N-1] = -alpha 
-#   A[N-1, 0] = -alpha
-
-#   B[0, N-1] = alpha 
-#   B[N-1, 0] = alpha
-
-#   A , B = np.array(A), np.array(B)
-
-#   cdef np.ndarray C = np.linalg.matrix_power( np.linalg.inv(A).dot(B), n_steps)
-
-#   u = C.dot(u0)
-
-#   return np.array(u)
-
 
 def diff_advec(double [:] u0, double nu=0.1, double c=0.1, double dx=0.1, double dt=0.1, int n_steps = 10):
   cdef int N = len(u0), i, _
@@ -297,3 +260,36 @@ def burgers_cn(double [:] u0, double nu=0.1, double dx=0.1, double dt=0.1, int n
     u = evolve(d)
 
   return np.array(u)
+
+cdef funker_plank_a1(x):
+  return 1.0 * x
+
+cdef funker_plank_a2(x, v):
+  return 0.1 * v
+
+cpdef funker_plank(double [:,:] p0, 
+                  double dx=0.1, 
+                  double dv = 0.1,
+                  double dt=0.1, 
+                  double alpha=1.0, double gamma=0.1, double sigma=0.1, # Physical parameters
+                  int n_steps = 10):
+  ## Updates in Split-operator style
+
+  # format of p0 is (N, M) as (x, v)
+  N, M = p0.shape
+  cdef double [:,:] p = p0.copy(), p_1_3 = p0.copy(), p_2_3 = p0.copy(), p_3_3 = p0.copy()
+  cdef double dt_third = dt/3.0
+
+  cdef double [:] upper_x, central_x, lower_x = np.ones(N), np.ones (N), np.ones(M)
+  cdef double [:] upper_v, central_v, lower_v = np.ones(N), np.ones (N), np.ones(M)
+
+  for t in range(n_steps):
+    for i in range(N):
+      for j in range(M):
+        # First system
+        
+        p_1_3[i,j] =  - dt_third 
+
+    # First part
+
+
