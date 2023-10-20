@@ -279,14 +279,14 @@ def burgers_cn(double [:] u0, double nu=0.1, double dx=0.1, double dt=0.1, int n
 
   return np.array(u)
 
-cdef funker_plank_a1(x):
-  return 1.0 * x
+cdef funker_plank_a1(x, t, physical_params):
+  return physical_params['a'] * x
 
-cdef funker_plank_a2(x, v):
-  return 0.1 * v
+cdef funker_plank_a2(x, v, t, physical_params):
+  return physical_params['gamma'] * v
 
-cdef funker_plank_differential_a2(x,v):
- return 0
+cdef funker_plank_differential_a2(x,v,t, physical_params):
+ return physical_params['gamma']
 
 cpdef funker_plank(double [:,:] p0, 
                   double [:] x_values, double [:] v_values,
@@ -343,17 +343,7 @@ cpdef funker_plank(double [:,:] p0,
         # Standard operator split
         b_v[j] =  p[i,j]
 
-        # # ADI: add the part of the other step
-        # if i != 0:
-        #   b_v[j] += - v_values[j] * 0.5 * omega *( - p[i-1, j]) 
-        
-        # if i != N-1:
-        #   b_v[j] += - v_values[j] * 0.5 * omega * p[i+1, j]  
-        
-  
-      # # # Boundary conditions
-      # b_v[0]   -= (- eta + theta *  0.5 * (alpha * x_values[i] + gamma * v_values[0]) - 0.25*dt*gamma)*p[i, N-1]
-      # b_v[M-1] -= (- eta - theta *  0.5 * (alpha * x_values[i] + gamma * v_values[M-1]) - 0.25*dt*gamma)*p[i, 0]
+      # Boundary conditions
       b_v[0] = 0
       diagonal_v[0] = 1
       upper_v[0] = 0
@@ -381,16 +371,7 @@ cpdef funker_plank(double [:,:] p0,
         # Standard split operator
         b_x[i] = p_intermediate[i,j]
 
-        # # ADI
-        # if j < M-1:
-        #   b_x[i] -= (- eta - theta *  0.5 * (alpha * x_values[i] + gamma * v_values[j]) - 0.25*dt*gamma)*p_intermediate[i, j+1]
-        # if j > 0 and j < M-1:
-        #   b_x[i] -= (- eta + theta *  0.5 * (alpha * x_values[i] + gamma * v_values[j]) - 0.25*dt*gamma)*p_intermediate[i, j-1]
-
-      # # Boundary conditions
-      # b_x[0]   -= ( - 0.5 * omega * v_values[j])  * p[N-1, j]
-      # b_x[N-1] -= ( + 0.5 * omega * v_values[j] ) * p[  0, j]
-
+      # Boundary conditions
       b_x[0] = 0
       diagonal_x[0] = 1
       upper_x[0] = 0
@@ -412,6 +393,32 @@ cpdef funker_plank(double [:,:] p0,
       
       norm[t] = sum * dx * dv
 
-  print(f"Took {perf_counter() - start}")
+  # print(f"Took {perf_counter() - start}")
+
   return p, norm
 
+
+cpdef time_dependent_funker_plank(double [:,:] p0,
+                                  double [:] x_values, double [:] v_values, double [:] f_t, 
+                                  dict funker_plank_args):
+  
+  fp_args = funker_plank_args.copy()
+  fp_args['n_steps'] = 1
+
+  cdef int t, i, j, N, M
+  N = len(x_values)
+  M = len(v_values)
+
+  cdef double [:,:] p = p0.copy()
+  cdef double [:] norm = np.zeros(len(f_t))
+
+  for t in range(len(f_t)):
+    p, norm_single_step = funker_plank(p, x_values, v_values, **fp_args)
+    
+    for i in range(N):
+      for j in range(M):
+        p[i,j] += f_t[t]*fp_args['dt']
+
+    norm[t] = norm_single_step[0]
+
+  return p, norm
