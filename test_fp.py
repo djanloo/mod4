@@ -6,7 +6,7 @@ matplotlib.use('TkAgg', force=True)
 import matplotlib.pyplot as plt
 
 Lx, Lv = 4, 4
-x0, v0 = 0.0,  2.0
+x0, v0 = 0.0,  0.0
 sx, sv = 0.6,  0.6
 
 x, v = np.linspace(-Lx ,Lx, 80, endpoint=False), np.linspace(-Lv, Lv, 80, endpoint=False)
@@ -17,20 +17,13 @@ p0 /= np.sum(p0)*np.diff(x)[0]*np.diff(v)[0]
 
 for gamma in [2.1]:
 
-    integration_args = dict(alpha=1.0, 
-                            gamma=gamma, 
-                            sigma= 0.8,
-                    dt=np.pi/1000.0, n_steps=1500)
+    integration_params = dict(dt=np.pi/1000.0, n_steps=1000)
+    physical_params = dict(alpha=1.0, gamma=gamma, sigma= 0.8, eps=0.01, omega=1.2)
+    
+    p , norm = funker_plank(p0, x, v, physical_params, integration_params)
 
-    period = np.pi*2*np.sqrt(1.0/integration_args['alpha'])
-    print(f"period is roughly {period}")
-
-    p , norm= funker_plank(p0, x, v, **integration_args)
     p = np.array(p)
-    # p /= np.sum(p)*np.diff(x)[0]*np.diff(v)[0]
-
     p[p<0] = 0
-    print(np.sum(np.isnan(p)))
 
     fig, (ax1, ax2)= plt.subplots(1,2, sharex=True, sharey=True, figsize=(8, 4))
     vmin = min(np.min(p0),np.min(p))
@@ -41,7 +34,7 @@ for gamma in [2.1]:
     ax1.set_title("t = 0")
 
     ax2.contourf(X,V, p, **opt)
-    ax2.set_title(f"t = {integration_args['dt']*integration_args['n_steps']}")
+    ax2.set_title(f"t = {integration_params['dt']*integration_params['n_steps']}")
     plt.colorbar(im, ax=ax2)
 
     plt.figure(2)
