@@ -5,20 +5,50 @@ matplotlib.use('TkAgg', force=True)
 
 import matplotlib.pyplot as plt
 
+Lx, Lv = 4, 4
+x0, v0 = 0.0, 0.0
+sx, sv = 0.5, 0.5
 
-x, v = np.linspace(-2 ,2, 80), np.linspace(-2, 2, 80)
-dx, dv = np.diff(x)[0], np.diff(v)[0]
+x, v = np.linspace(-Lx ,Lx, 100, endpoint=False), np.linspace(-Lv, Lv, 100, endpoint=False)
 
 X, V = np.meshgrid(x,v)
-p0 = np.exp( - (X/0.2)**2 - (V/0.2)**2)
+p0 = np.exp( -((X-x0)/sx)**2 - ((V-v0)/sv)**2)
 
-p = funker_plank(p0, x, v, 
-                alpha=0, gamma=0.1, sigma= 0.0,
-                dt=0.01, n_steps=100)
+p0 /= np.sum(p0)*np.diff(x)[0]*np.diff(v)[0]
 
-plt.figure(1)
-plt.contourf(X, V, p0)
+for gamma in np.linspace(0.0, 3, 5):
 
-plt.figure(2)
-plt.contourf(X, V, p)
+    integration_args = dict(alpha=1.0, 
+                            gamma=gamma, 
+                            sigma= 0.1,
+                    dt=0.01, n_steps=100)
+
+    period = np.pi*2*np.sqrt(1.0/integration_args['alpha'])
+    print(f"period is roughly {period}")
+
+    p , norm= funker_plank(p0, x, v, **integration_args)
+    p = np.array(p)
+    # p /= np.sum(p)*np.diff(x)[0]*np.diff(v)[0]
+
+    p[p<0] = 0
+    print(np.sum(np.isnan(p)))
+
+    # fig, (ax1, ax2)= plt.subplots(1,2, sharex=True, sharey=True, figsize=(8, 4))
+    # vmin = min(np.min(p0),np.min(p))
+    # vmax = max(np.max(p0), np.max(p))
+
+    # opt = dict(vmin=vmin, vmax=vmax)
+    # im = ax1.contourf(X, V, p0, **opt)
+    # ax1.set_title("t = 0")
+
+    # ax2.contourf(X,V, p, **opt)
+    # ax2.set_title(f"t /T = {integration_args['dt']*integration_args['n_steps']/period}")
+    # plt.colorbar(im, ax=ax2)
+
+    plt.figure(2)
+    plt.plot(np.abs(np.array(norm) - 1), label=f"gamma = {gamma:.2f}")
+    plt.yscale('log')
+    plt.ylabel(r"$|N_n - 1|$")
+    plt.xlabel(r"n")
+plt.legend()
 plt.show()

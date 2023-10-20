@@ -279,60 +279,89 @@ def funker_plank(double [:,:] p0,
   print(f"Matrix is {N} (x) times {M}(v)")
   cdef int t, i, j
 
-  cdef double [:,:] p = p0.copy(), p_intermediate = p0.copy(), p_old = p0.copy()
+  cdef double [:,:] p = p0.copy(), p_intermediate = p0.copy()
+  cdef double [:] norm = np.zeros(n_steps)
 
   cdef double dx = np.diff(x_values)[0]
   cdef double dv = np.diff(v_values)[0]
+  print(f"dx = {dx}, dv = {dv}, dt = {dt}")
 
-  cdef double theta = dt/4.0/dv
-  cdef double omega = dt/4.0/dx 
-  cdef double eta = sigma*dt/4.0/dv**2
+  cdef double theta = 0.5 * dt/dv
+  cdef double omega = 0.5 * dt/dx 
+  cdef double eta = sigma*dt/2.0/dv**2
+  print(f"theta = {theta}, omega = {omega}, eta = {eta}, gamma*dt = {gamma*dt}")
 
   # Declarations of the diagonals
-  cdef double [:] lower_x, diagonal_x, upper_x, lower_v, diagonal_v, upper_v, b_x, b_v
-  cdef double right_x, central_x, left_x, right_v, central_v, left_v
+  cdef double [:] lower_x, diagonal_x, upper_x, b_x
+  cdef double [:] lower_v, diagonal_v, upper_v, b_v
 
   lower_v, upper_v, b_v = np.ones(M), np.ones(M), np.ones(M)
-  diagonal_v = np.ones(M) * (1-eta)
+  lower_x, upper_x, b_x = np.ones(N), np.ones(N), np.ones(N)
+
+  # Diagonal of systems does not change
+  diagonal_v = np.ones(M) * (1 + 2*eta - gamma*dt)
+  diagonal_x = np.ones(N)
+
+  # Declarations of values for boundaries
+  cdef double right_x, central_x, left_x
+  cdef double right_v, central_v, left_v
 
   for t in range(n_steps):
-    # First evolution
+    # First evolution: differential wrt V
+    # For each value of x, a tridiagonal system is solved to find values of v
     for i in range(N):
 
-      central_x = x_values[i]
-      left_x = x_values[i - 1] if i != 0 else x_values[N-1]
-      right_x= x_values[i + 1] if i != N-1 else x_values[0]
-
-      # Prepares the vectors of coefficients and the constant term
+      # Prepares tridiagonal matrix and the constant term
       for j in range(M):
-        left_p_on_v =  p[i, j-1] if j != 0 else p[i, M-1]
-        right_p_on_v = p[i, j+1] if j != N-1 else p[i, 0]
+        beta_i_j = alpha * x_values[i] + gamma * v_values[j]
 
-        left_p_on_x = p[i-1, j] if i != 0 else p[N-1, j]
-        right_p_on_x = p[i+1, j] if i != N-1 else p[0, j]
+        lower_v[j] = - theta * beta_i_j - eta - 0.5*dt*gamma
+        upper_v[j] =   theta * beta_i_j - eta - 0.5*dt*gamma
 
-        central_v = v_values[j]
-        left_v = v_values[j - 1] if j != 0 else v_values[N-1]
-        right_v= v_values[j + 1] if j != N-1 else v_values[0]
- 
-        lower_v[j] = - theta * (alpha * central_x - gamma * right_v)
-        upper_v[j] =   omega * (alpha * central_x - gamma * left_v)
+        b_v[j] =  p[i,j]
 
-        b_v[j] =  p[i,j] +\
-                  eta * (right_p_on_v - 2*p[i,j] + left_p_on_v) +\
-                 -omega * central_v * ( right_p_on_x - left_p_on_x)
+      # Boundary conditions
+      b_v[0] -= (theta * (alpha * x_values[i] + gamma * v_values[M-1]) - eta) * p[i, M-1]
+      b_v[M-1] -= (- theta * (alpha * x_values[i] + gamma * v_values[0]) - eta) * p[i, 0]
 
       # Performs the tridiag in the local i-value
       row = tridiag(lower_v, diagonal_v, upper_v, b_v)
 
+      # Copies the row in p_ij
       for j in range(M):
         p_intermediate[i, j] = row[j]
     
-    for i in range(N):
-      for j in range(M):
-        
-  
-    p = p_intermediate
+    # Second evolution: differential wrt x
+    # For each value of v, a tridiagonal system is solved to find values of x
+    for j in range(M):
 
-  return p_intermediate
+      # Prepares tridiagonal matrix and constant term
+      for i in range(N):
+        lower_x[i] =   omega * v_values[j]
+        upper_x[i] = - omega * v_values[j]
+        b_x[i] = p_intermediate[i,j]
+
+      # Boundary conditions
+      b_x[0] -= (- v_values[j] * omega) * p[N-1, j]
+      b_x[N-1] -= ( v_values[j] * omega ) * p[0, j]
+
+      row = tridiag(lower_x, diagonal_x, upper_x, b_x)
+    
+      for i in range(N):
+        p[i,j] = row[i]
+
+      # Normalization
+      sum = 0
+      for i in range(N):
+        for j in range(M):
+          sum += p[i,j]
+      
+      sum *= dx*dv 
+      norm[t] = sum
+
+      # for i in range(N):
+      #   for j in range(M):
+      #     p[i, j] /= sum
+
+  return p, norm
 
