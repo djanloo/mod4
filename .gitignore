@@ -6,6 +6,9 @@ __pycache__/
 # Venv
 mod4_venv/
 
+# Big files
+*.mp4
+
 # C extensions
 *.so
 
