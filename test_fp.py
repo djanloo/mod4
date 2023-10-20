@@ -9,8 +9,7 @@ Lx, Lv = 4, 4
 x0, v0 = 0.0,  2.0
 sx, sv = 0.6,  0.6
 
-x, v = np.linspace(-Lx ,Lx, 100, endpoint=False), np.linspace(-Lv, Lv, 100, endpoint=False)
-
+x, v = np.linspace(-Lx ,Lx, 80, endpoint=False), np.linspace(-Lv, Lv, 80, endpoint=False)
 X, V = np.meshgrid(x,v)
 p0 = np.exp( -((X-x0)/sx)**2 - ((V-v0)/sv)**2)
 
@@ -21,7 +20,7 @@ for gamma in [2.1]:
     integration_args = dict(alpha=1.0, 
                             gamma=gamma, 
                             sigma= 0.8,
-                    dt=np.pi/1000.0, n_steps=1000)
+                    dt=np.pi/1000.0, n_steps=1500)
 
     period = np.pi*2*np.sqrt(1.0/integration_args['alpha'])
     print(f"period is roughly {period}")

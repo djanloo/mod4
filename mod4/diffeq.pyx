@@ -297,7 +297,7 @@ cpdef funker_plank(double [:,:] p0,
 
   cdef int N = len(x_values)
   cdef int M = len(v_values)
-  print(f"Matrix is {N} (x) times {M}(v)")
+  # print(f"Matrix is {N} (x) times {M}(v)")
   cdef int t, i, j
 
   cdef double [:,:] p = p0.copy(), p_intermediate = p0.copy()
@@ -305,12 +305,15 @@ cpdef funker_plank(double [:,:] p0,
 
   cdef double dx = np.diff(x_values)[0]
   cdef double dv = np.diff(v_values)[0]
-  print(f"dx = {dx}, dv = {dv}, dt = {dt}")
+  # print(f"dx = {dx}, dv = {dv}, dt = {dt}")
+
+  # # ADI
+  # dt /=2
 
   cdef double theta = dt/dv
   cdef double omega = dt/dx 
   cdef double eta = sigma*dt/dv**2
-  print(f"theta = {theta}, omega = {omega}, eta = {eta}, gamma*dt = {gamma*dt}")
+  # print(f"theta = {theta}, omega = {omega}, eta = {eta}, gamma*dt = {gamma*dt}")
 
   # Declarations of the diagonals
   cdef double [:] lower_x, diagonal_x, upper_x, b_x
@@ -337,11 +340,27 @@ cpdef funker_plank(double [:,:] p0,
         if j < M-1:
           lower_v[j] =  - eta + theta *  0.5 * (alpha * x_values[i] + gamma * v_values[j + 1]) - 0.25*dt*gamma
 
+        # Standard operator split
         b_v[j] =  p[i,j]
+
+        # # ADI: add the part of the other step
+        # if i != 0:
+        #   b_v[j] += - v_values[j] * 0.5 * omega *( - p[i-1, j]) 
+        
+        # if i != N-1:
+        #   b_v[j] += - v_values[j] * 0.5 * omega * p[i+1, j]  
+        
   
-      # # Boundary conditions
-      b_v[0]   -= (- eta + theta *  0.5 * (alpha * x_values[i] + gamma * v_values[0]) - 0.25*dt*gamma)*p[i, N-1]
-      b_v[M-1] -= (- eta - theta *  0.5 * (alpha * x_values[i] + gamma * v_values[M-1]) - 0.25*dt*gamma)*p[i, 0]
+      # # # Boundary conditions
+      # b_v[0]   -= (- eta + theta *  0.5 * (alpha * x_values[i] + gamma * v_values[0]) - 0.25*dt*gamma)*p[i, N-1]
+      # b_v[M-1] -= (- eta - theta *  0.5 * (alpha * x_values[i] + gamma * v_values[M-1]) - 0.25*dt*gamma)*p[i, 0]
+      b_v[0] = 0
+      diagonal_v[0] = 1
+      upper_v[0] = 0
+
+      b_v[M-1] = 0
+      diagonal_v[M-1] = 1
+      lower_v[M-2] = 0
 
       # Performs the tridiag in the local i-value
       row = tridiag(lower_v, diagonal_v, upper_v, b_v)
@@ -358,11 +377,27 @@ cpdef funker_plank(double [:,:] p0,
       for i in range(N):
         lower_x[i] = - 0.5 * omega * v_values[j]
         upper_x[i] =   0.5 * omega * v_values[j]
+
+        # Standard split operator
         b_x[i] = p_intermediate[i,j]
 
-      # Boundary conditions
-      b_x[0]   -= ( - 0.5 * omega * v_values[j])  * p[N-1, j]
-      b_x[N-1] -= ( + 0.5 * omega * v_values[j] ) * p[  0, j]
+        # # ADI
+        # if j < M-1:
+        #   b_x[i] -= (- eta - theta *  0.5 * (alpha * x_values[i] + gamma * v_values[j]) - 0.25*dt*gamma)*p_intermediate[i, j+1]
+        # if j > 0 and j < M-1:
+        #   b_x[i] -= (- eta + theta *  0.5 * (alpha * x_values[i] + gamma * v_values[j]) - 0.25*dt*gamma)*p_intermediate[i, j-1]
+
+      # # Boundary conditions
+      # b_x[0]   -= ( - 0.5 * omega * v_values[j])  * p[N-1, j]
+      # b_x[N-1] -= ( + 0.5 * omega * v_values[j] ) * p[  0, j]
+
+      b_x[0] = 0
+      diagonal_x[0] = 1
+      upper_x[0] = 0
+
+      b_x[M-1] = 0
+      diagonal_x[N-1] = 1
+      lower_x[N-2] = 0
 
       row = tridiag(lower_x, diagonal_x, upper_x, b_x)
     
