@@ -1,20 +1,20 @@
 import numpy as np
 
-cpdef tridiag(double [:] lower, double [:] diag, double [:] upper, double [:] d):
+cdef tridiag(double [:] lower, double [:] diag, double [:] upper, double [:] d):
     """Solve the tridiagonal system by Thomas Algorithm"""
     cdef int N = len(diag)
     cdef int i
     cdef double [:] x = np.zeros(N, dtype="float64")
     cdef double [:] a = lower.copy(), b = diag.copy(), c = upper.copy()
 
-    A = np.zeros((N,N))
+    # A = np.zeros((N,N))
 
-    for i in range(N):
-        A[i,i] = b[i] 
-        if i >= 1:
-            A[i, i-1] = a[i-1]
-        if i < N-1:
-            A[i, i+1] = c[i]
+    # for i in range(N):
+    #     A[i,i] = b[i] 
+    #     if i >= 1:
+    #         A[i, i-1] = a[i-1]
+    #     if i < N-1:
+    #         A[i, i+1] = c[i]
 
     # print(f"tri: a = {np.array(a)}")
     # print(f"tri: b = {np.array(b)}")
@@ -37,7 +37,7 @@ cpdef tridiag(double [:] lower, double [:] diag, double [:] upper, double [:] d)
 cpdef cyclic_tridiag(double [:] lower, double [:] diag, double [:] upper, double c_up_right, double c_down_left, double [:] d):
     cdef int N = len(diag), i
     cdef double [:] u = np.zeros(N), v = np.zeros(N)
-    cdef gamma = 1.0 # the mysterious parameter
+    cdef double gamma = 1.0 # the mysterious parameter
     
     u[0]   = gamma
     u[N-1] = c_down_left

@@ -4,7 +4,25 @@ import numpy as np
 cimport cython
 cimport numpy as np
 
-from.utils import tridiag
+from time import perf_counter
+
+
+cdef tridiag(double [:] lower, double [:] diag, double [:] upper, double [:] d):
+    """Solve the tridiagonal system by Thomas Algorithm"""
+    cdef int N = len(diag)
+    cdef int i
+    cdef double [:] x = np.zeros(N, dtype="float64")
+    cdef double [:] a = lower.copy(), b = diag.copy(), c = upper.copy()
+
+    for i in range(N-1):
+        b[i+1] -= a[i]/b[i]*c[i]
+        d[i+1] -= a[i]/b[i]*d[i]
+    
+    x[N-1] = d[N-1]/b[N-1]
+    for i in range(N-2, -1, -1):
+        x[i] = (d[i] - c[i]*x[i+1])/b[i]
+    
+    return(np.array(x))
 
 cpdef FTCS(double [:] u0, double v=0.5, double dx=0.1, double dt=0.1, int n_steps = 10):
   """Implements a forward time centered space integrator 
@@ -267,7 +285,10 @@ cdef funker_plank_a1(x):
 cdef funker_plank_a2(x, v):
   return 0.1 * v
 
-def funker_plank(double [:,:] p0, 
+cdef funker_plank_differential_a2(x,v):
+ return 0
+
+cpdef funker_plank(double [:,:] p0, 
                   double [:] x_values, double [:] v_values,
                   double dt= 0.1, # Integration parameters
                   double alpha=1.0, double gamma=0.1, double sigma=0.1, # Physical parameters
@@ -286,9 +307,9 @@ def funker_plank(double [:,:] p0,
   cdef double dv = np.diff(v_values)[0]
   print(f"dx = {dx}, dv = {dv}, dt = {dt}")
 
-  cdef double theta = 0.5 * dt/dv
-  cdef double omega = 0.5 * dt/dx 
-  cdef double eta = sigma*dt/2.0/dv**2
+  cdef double theta = dt/dv
+  cdef double omega = dt/dx 
+  cdef double eta = sigma*dt/dv**2
   print(f"theta = {theta}, omega = {omega}, eta = {eta}, gamma*dt = {gamma*dt}")
 
   # Declarations of the diagonals
@@ -299,12 +320,10 @@ def funker_plank(double [:,:] p0,
   lower_x, upper_x, b_x = np.ones(N), np.ones(N), np.ones(N)
 
   # Diagonal of systems does not change
-  diagonal_v = np.ones(M) * (1 + 2*eta - gamma*dt)
+  diagonal_v = np.ones(M) * (1 + 2*eta - 0.5*gamma*dt)
   diagonal_x = np.ones(N)
 
-  # Declarations of values for boundaries
-  cdef double right_x, central_x, left_x
-  cdef double right_v, central_v, left_v
+  start = perf_counter()
 
   for t in range(n_steps):
     # First evolution: differential wrt V
@@ -313,16 +332,16 @@ def funker_plank(double [:,:] p0,
 
       # Prepares tridiagonal matrix and the constant term
       for j in range(M):
-        beta_i_j = alpha * x_values[i] + gamma * v_values[j]
+        upper_v[j] = - eta - theta *  0.5 * (alpha * x_values[i] + gamma * v_values[j]) - 0.25*dt*gamma
 
-        lower_v[j] = - theta * beta_i_j - eta - 0.5*dt*gamma
-        upper_v[j] =   theta * beta_i_j - eta - 0.5*dt*gamma
+        if j < M-1:
+          lower_v[j] =  - eta + theta *  0.5 * (alpha * x_values[i] + gamma * v_values[j + 1]) - 0.25*dt*gamma
 
         b_v[j] =  p[i,j]
-
-      # Boundary conditions
-      b_v[0] -= (theta * (alpha * x_values[i] + gamma * v_values[M-1]) - eta) * p[i, M-1]
-      b_v[M-1] -= (- theta * (alpha * x_values[i] + gamma * v_values[0]) - eta) * p[i, 0]
+  
+      # # Boundary conditions
+      b_v[0]   -= (- eta + theta *  0.5 * (alpha * x_values[i] + gamma * v_values[0]) - 0.25*dt*gamma)*p[i, N-1]
+      b_v[M-1] -= (- eta - theta *  0.5 * (alpha * x_values[i] + gamma * v_values[M-1]) - 0.25*dt*gamma)*p[i, 0]
 
       # Performs the tridiag in the local i-value
       row = tridiag(lower_v, diagonal_v, upper_v, b_v)
@@ -337,31 +356,27 @@ def funker_plank(double [:,:] p0,
 
       # Prepares tridiagonal matrix and constant term
       for i in range(N):
-        lower_x[i] =   omega * v_values[j]
-        upper_x[i] = - omega * v_values[j]
+        lower_x[i] = - 0.5 * omega * v_values[j]
+        upper_x[i] =   0.5 * omega * v_values[j]
         b_x[i] = p_intermediate[i,j]
 
       # Boundary conditions
-      b_x[0] -= (- v_values[j] * omega) * p[N-1, j]
-      b_x[N-1] -= ( v_values[j] * omega ) * p[0, j]
+      b_x[0]   -= ( - 0.5 * omega * v_values[j])  * p[N-1, j]
+      b_x[N-1] -= ( + 0.5 * omega * v_values[j] ) * p[  0, j]
 
       row = tridiag(lower_x, diagonal_x, upper_x, b_x)
     
       for i in range(N):
         p[i,j] = row[i]
 
-      # Normalization
+      # Takes trace of normalization
       sum = 0
       for i in range(N):
         for j in range(M):
           sum += p[i,j]
       
-      sum *= dx*dv 
-      norm[t] = sum
+      norm[t] = sum * dx * dv
 
-      # for i in range(N):
-      #   for j in range(M):
-      #     p[i, j] /= sum
-
+  print(f"Took {perf_counter() - start}")
   return p, norm
 
