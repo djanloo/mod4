@@ -24,7 +24,7 @@ os.chdir(packageDir)
 extension_kwargs = dict( 
         include_dirs=includedDir,
         libraries=["m"],                # Unix-like specific link to C math libraries
-        extra_compile_args=["-fopenmp"],# Links OpenMP for parallel computing
+        extra_compile_args=["-fopenmp", "-O3"],# Links OpenMP for parallel computing
         extra_link_args=["-fopenmp"],
         )
 

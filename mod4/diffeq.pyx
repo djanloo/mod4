@@ -8,7 +8,7 @@ cimport numpy as np
 from time import perf_counter
 from libc.math cimport sin
 
-cdef tridiag(double [:] lower, double [:] diag, double [:] upper, double [:] d):
+cdef double [:] tridiag(double [:] lower, double [:] diag, double [:] upper, double [:] d):
     """Solve the tridiagonal system by Thomas Algorithm"""
     cdef int N = len(diag)
     cdef int i
@@ -292,19 +292,20 @@ cdef double d_a2(double x, double v, double t, dict physical_params):
   '''Differential of a2 wrt v'''
   return physical_params['gamma']
 
-cpdef funker_plank( double [:,:] p0, 
+def funker_plank( double [:,:] p0, 
                     double [:] x, double [:] v,
                     physical_params,
-                    integration_params
+                    integration_params,
+                    save_norm = False # This costs a lot of time
                     ):
 
-  cdef double dt = integration_params['dt']
+  cdef double dt   = integration_params['dt']
   cdef int n_steps = integration_params['n_steps']
-  cdef float t0 = physical_params.get('t0', 0)
+  cdef float t0    = physical_params.get('t0', 0)
 
   cdef int N = len(x)
   cdef int M = len(v)
-  cdef int t, x_index, v_index
+  cdef int t, i, j
 
   cdef double [:,:] p = p0.copy(), p_intermediate = p0.copy()
   cdef double [:] norm = np.zeros(n_steps)
@@ -312,8 +313,8 @@ cpdef funker_plank( double [:,:] p0,
   cdef double dx = np.diff(x)[0]
   cdef double dv = np.diff(v)[0]
 
-  cdef double theta = dt/dv
-  cdef double omega = dt/dx 
+  cdef double theta = 0.5 * dt/dv
+  cdef double omega = 0.5 * dt/dx 
   cdef double eta = physical_params['sigma']*dt/dv**2
 
   # Declarations of the diagonals
@@ -327,24 +328,38 @@ cpdef funker_plank( double [:,:] p0,
   diagonal_v = np.ones(M) * (1 + 2*eta - 0.5*d_a2(0,0,0, physical_params)*dt)
   diagonal_x = np.ones(N)
 
+  # test
+  cdef double [:] sum_of_row = np.zeros(M)
+  cdef int row_index
 
   for t in range(n_steps):
     # First evolution: differential wrt V
     # For each value of x, a tridiagonal system is solved to find values of v
-    for x_index in range(N):
+    for i in range(N):
 
       # Prepares tridiagonal matrix and the constant term
-      for v_index in range(M):
-        upper_v[v_index] = - eta - theta *  0.5 * a1(x[x_index], t0 + t*dt, physical_params) +\
-                           - theta *  0.5 * a2(x[x_index], v[v_index], t0 + t*dt, physical_params) +\
-                              - 0.25 * dt * d_a2(x[x_index], v[v_index], t0 + t*dt, physical_params)
+      for j in range(M):
+        upper_v[j]  = - eta
+        upper_v[j] -= theta * a1(x[i], t0 + t*dt, physical_params)
+        upper_v[j] -= theta * a2(x[i], v[j], t0 + t*dt, physical_params)
+        upper_v[j] -= 0.25 * dt * d_a2(x[i], v[j], t0 + t*dt, physical_params)
 
-        if v_index < M-1:
-          lower_v[v_index] =  - eta + theta * 0.5 * a1(x[x_index], t0 + t*dt, physical_params) +\
-                                theta * 0.5 * a2(x[x_index], v[v_index+1], t0 + t*dt, physical_params) +\
-                                - 0.25 * dt * d_a2(x[x_index], v[v_index+1], t0 + t*dt, physical_params)
 
-        b_v[v_index] =  p[v_index, x_index]
+        if j < M-1:
+          lower_v[j] =  - eta
+          lower_v[j] += theta * a1(x[i], t0 + t*dt, physical_params)
+          lower_v[j] += theta * a2(x[i], v[j+1], t0 + t*dt, physical_params)
+          lower_v[j] -= 0.25 * dt * d_a2(x[i], v[j+1], t0 + t*dt, physical_params)
+        b_v[j] =  p[j, i]
+
+      # Test stochastic matrix:
+
+      for row_index in range(M):
+        sum_of_row[row_index] = diagonal_v[row_index] + upper_v[row_index]
+        if row_index > 1:
+          sum_of_row[row_index] += lower_v[row_index - 1]
+      print(np.array(sum_of_row))
+      print( np.array(sum_of_row) + dt * d_a2(x[0], v[0], t0 + t*dt, physical_params))
 
       # Boundary conditions
       b_v[0] = 0
@@ -355,23 +370,23 @@ cpdef funker_plank( double [:,:] p0,
       diagonal_v[M-1] = 1
       lower_v[M-2] = 0
 
-      # Performs the tridiag in the local x_index-value
+      # Performs the tridiag in the local i-value
       row = tridiag(lower_v, diagonal_v, upper_v, b_v)
 
       # Copies the row in p_ij
-      for v_index in range(M):
-        p_intermediate[v_index, x_index] = row[v_index]
+      for j in range(M):
+        p_intermediate[j, i] = row[j]
     
     # Second evolution: differential wrt x
     # For each value of v, a tridiagonal system is solved to find values of x
-    for v_index in range(M):
+    for j in range(M):
 
       # Prepares tridiagonal matrix and constant term
-      for x_index in range(N):
-        lower_x[x_index] = - 0.5 * omega * v[v_index]
-        upper_x[x_index] =   0.5 * omega * v[v_index]
+      for i in range(N):
+        lower_x[i] = - omega * v[j]
+        upper_x[i] =   omega * v[j]
 
-        b_x[x_index] = p_intermediate[v_index, x_index]
+        b_x[i] = p_intermediate[j, i]
 
       # Boundary conditions
       b_x[0] = 0
@@ -384,16 +399,15 @@ cpdef funker_plank( double [:,:] p0,
 
       row = tridiag(lower_x, diagonal_x, upper_x, b_x)
     
-      for x_index in range(N):
-        p[v_index,x_index] = row[x_index]
+      for i in range(N):
+        p[j,i] = row[i]
 
-      # Takes trace of normalization
-      sum = 0
-      for x_index in range(N):
-        for v_index in range(M):
-          sum += p[v_index,x_index]
+    # Takes trace of normalization
+    if save_norm:
+      for i in range(N):
+        for j in range(M):
+          norm[t] += p[j,i]
       
-      norm[t] = sum * dx * dv
-
+      norm[t] *= dx * dv
 
   return p, norm
