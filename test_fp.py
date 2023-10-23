@@ -19,10 +19,10 @@ p0 /= np.sum(p0)*np.diff(x)[0]*np.diff(v)[0]
 for gamma in [2.1]:
 
     integration_params = dict(dt=np.pi/1000.0, n_steps=1000)
-    physical_params = dict(alpha=1.0, gamma=gamma, sigma= 0.8, eps=0.01, omega=1.2, U0=0.3)
+    physical_params = dict(alpha=1.0, gamma=gamma, sigma= 0.8, eps=0.00, omega=1.2, U0=0.3)
     
     start = perf_counter()
-    p , norm = funker_plank(p0, x, v, physical_params, integration_params)
+    p , norm = funker_plank(p0, x, v, physical_params, integration_params, save_norm=True)
     print(f"Took {perf_counter() -start}")
 
     p = np.array(p)
