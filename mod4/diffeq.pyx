@@ -24,14 +24,15 @@ cdef double [:] tridiag(double [:] lower, double [:] diag, double [:] upper, dou
         x[i] = (d[i] - c[i]*x[i+1])/b[i]
     
     return(np.array(x))
+  
+def get_boundary_func(int type):
+  if type == 0:
+    cdef a(double [:] v):
+      return v
+    return a
+  else:
+    return None
 
-cdef double a(double x, double v, double t, dict physical_params):
-  cdef double value = 0
-  cdef double zz = x/physical_params['alpha']
-
-  value += 4 * physical_params['U0'] * (zz-1)*(zz+1)*zz + physical_params['eps'] * sin( physical_params['omega'] * t)
-  value += physical_params['gamma'] * v
-  return value
 
 cdef double d_a(double x, double v, double t, dict physical_params):
   '''Differential of a2 wrt v'''
@@ -46,12 +47,12 @@ def funker_plank( double [:,:] p0,
                     ):
 
   cdef double dt   = integration_params['dt']
-  cdef int n_steps = integration_params['n_steps']
+  cdef unsigned int n_steps = integration_params['n_steps']
   cdef float t0    = physical_params.get('t0', 0)
 
-  cdef int N = len(x)
-  cdef int M = len(v)
-  cdef int t, i, j
+  cdef unsigned int N = len(x)
+  cdef unsigned int M = len(v)
+  cdef unsigned int t, i, j
 
   cdef double [:,:] p = p0.copy(), p_intermediate = p0.copy()
   cdef double [:] norm = np.zeros(n_steps)
@@ -114,12 +115,8 @@ def funker_plank( double [:,:] p0,
       diagonal_v[M-1] = 1
       lower_v[M-2] = 0
 
-      # Performs the tridiag in the local i-value
-      row = tridiag(lower_v, diagonal_v, upper_v, b_v)
-
-      # Copies the row in p_ij
-      for j in range(M):
-        p_intermediate[j, i] = row[j]
+      # Solves the tridiagonal system for the column
+      p[:, i] =  tridiag(lower_v, diagonal_v, upper_v, b_v)
     
     # Second evolution: differential wrt x
     # For each value of v, a tridiagonal system is solved to find values of x
@@ -141,10 +138,8 @@ def funker_plank( double [:,:] p0,
       diagonal_x[N-1] = 1
       lower_x[N-2] = 0
 
-      row = tridiag(lower_x, diagonal_x, upper_x, b_x)
-    
-      for i in range(N):
-        p[j,i] = row[i]
+      # Solves the tridiagonal system for the row
+      p[j, :] = tridiag(lower_x, diagonal_x, upper_x, b_x)
 
     # Takes trace of normalization
     if save_norm:
