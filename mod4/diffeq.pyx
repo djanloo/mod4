@@ -72,7 +72,7 @@ cpdef double [:,:] analytic(double [:, :] X, double [:,:] V, double time,
     return result
 
 cdef double a(double x, double v, double time_index, dict physical_params):
-  return physical_params['omega_squared']*x*x + physical_params['gamma']*v
+  return physical_params['omega_squared']*x + physical_params['gamma']*v
 
 cdef double d_a(double x, double v, double time_index, dict physical_params):
   '''Differential of a wrt v'''
@@ -136,14 +136,14 @@ def funker_plank( double [:,:] p0,
           lower_v[j] -= 0.25 * dt * d_a(x[i], v[j+1], t0 + time_index*dt, physical_params)
         b_v[j] =  p[j, i]
 
-      # Boundary conditions
-      b_v[0] = 0
-      diagonal_v[0] = 1
-      upper_v[0] = 0
+      # # Boundary conditions
+      # b_v[0] = 0
+      # diagonal_v[0] = 1
+      # upper_v[0] = 0
 
-      b_v[M-1] = 0
-      diagonal_v[M-1] = 1
-      lower_v[M-2] = 0
+      # b_v[M-1] = 0
+      # diagonal_v[M-1] = 1
+      # lower_v[M-2] = 0
 
       # Solves the tridiagonal system for the column
       row = tridiag(lower_v, diagonal_v, upper_v, b_v)
@@ -162,14 +162,14 @@ def funker_plank( double [:,:] p0,
 
         b_x[i] = p_intermediate[j, i]
 
-      # Boundary conditions
-      b_x[0] = 0
-      diagonal_x[0] = 1
-      upper_x[0] = 0
+      # # Boundary conditions
+      # b_x[0] = 0
+      # diagonal_x[0] = 1
+      # upper_x[0] = 0
 
-      b_x[M-1] = 0
-      diagonal_x[N-1] = 1
-      lower_x[N-2] = 0
+      # b_x[M-1] = 0
+      # diagonal_x[N-1] = 1
+      # lower_x[N-2] = 0
       
       # Solves the tridiagonal system for the row
       row =  tridiag(lower_x, diagonal_x, upper_x, b_x)
