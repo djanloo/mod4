@@ -32,7 +32,7 @@ p0 = np.exp( -((X-x0)/sx)**2 - ((V-v0)/sv)**2)
 p0 /= np.sum(p0)*np.diff(x)[0]*np.diff(v)[0]
 
 integration_params = dict(dt=np.pi/1000.0, n_steps=100)
-physical_params = dict(alpha=1.0, gamma=0.2, sigma= 0.02, eps=0.1, omega=3, U0=0.1)
+physical_params = dict(omega_squared=1.0, gamma=2.1, sigma= 0.8)
 
 wrap(p0, x, v, physical_params, integration_params, save_norm=True)
 
