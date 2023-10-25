@@ -25,54 +25,8 @@ cdef double [:] tridiag(double [:] lower, double [:] diag, double [:] upper, dou
     
     return(np.array(x))
 
-cdef double [:,:] stupid_inverse(double [:,:] A):
-    det = np.linalg.det(A)
-    B = A.copy()
-    B[0, 0] = A[1,1]/det 
-    B[1, 1] = A[0,0]/det
-    B[0,1] = -A[1,0]/det 
-    B[1,0] = -A[0,1]/det
-    return B
-
-cpdef double [:,:] analytic(double [:, :] X, double [:,:] V, double time, 
-              double x0, double v0, 
-              physical_params):
-
-    N, M = X.shape[0], X.shape[1]
-    omega_squared, gamma, sigma = map(physical_params.get, ['omega_squared', 'gamma', 'sigma'])
-
-    l1, l2 = 0.5 * gamma + np.sqrt( (0.5*gamma)**2 - omega_squared**2), 0.5 * gamma - np.sqrt( (0.5*gamma)**2 - omega_squared**2)
-    exp1, exp2 = np.exp(-l1*time), np.exp(-l2*time)
-    G = [[(l1*exp1 - l2*exp2)/(l1 - l2), (exp2 - exp1)/(l1 -l2)],
-         [omega_squared**2*(exp1 - exp2)/(l1-l2), (l1*exp1 - l2*exp2)/(l1 -l2)]]
-    G = np.array(G)
-
-    Sigm11 = sigma**2/(l1 -l2)**2*( (l1 + l2)/l1/l2 - 4*(1- exp1*exp2)/(l1+l1)- exp1**2 - exp2**2)
-    Sigm12 = sigma**2/(l1 + l2)**2*(exp1 - exp2)**2
-    Sigm22 = sigma**2/(l1-l2)**2*(l1+l2 + 4*l1*l2/(l1+l2)*(exp1*exp2 - 1) -l1*exp1**2 -l2*exp2**2)
-
-    S = np.array([  [Sigm11, Sigm12],
-                    [Sigm12, Sigm22]])
-    normalization = 2*np.pi*np.sqrt(np.linalg.det(S))
-    S_inv = stupid_inverse(S)
-    result = np.zeros((N, M))
-    for i in range(N):
-      for j in range(M):
-        extended_vect = np.array([X[i,j], V[i,j]])
-        extended_init = np.array([x0, v0])
-        mu = extended_vect - np.dot(G, extended_init)
-        exponent = -0.5*np.dot(mu, np.dot(S_inv, mu.time_index))
-        result[i, j] = np.exp(exponent)/normalization
-        
-    cdef double norm = 0.0
-    for i in range(N):
-      for j in range(M):
-        norm += result[i,j]
-    print(f"norm of analytic is {norm*(X[0,1] - X[0, 0])*(V[1, 0] - V[0,0])}")
-    return result
-
-cdef double a(double x, double v, double time_index, dict physical_params):
-  return physical_params['omega_squared']*x + physical_params['gamma']*v
+cdef double a(double x, double v, double time, dict physical_params):
+  return physical_params['omega_squared']*x + physical_params['gamma']*v + time
 
 cdef double d_a(double x, double v, double time_index, dict physical_params):
   '''Differential of a wrt v'''
@@ -136,20 +90,17 @@ def funker_plank( double [:,:] p0,
           lower_v[j] -= 0.25 * dt * d_a(x[i], v[j+1], t0 + time_index*dt, physical_params)
         b_v[j] =  p[j, i]
 
-      # # Boundary conditions
-      # b_v[0] = 0
-      # diagonal_v[0] = 1
-      # upper_v[0] = 0
+      # Boundary conditions
+      b_v[0] = 0
+      diagonal_v[0] = 1
+      upper_v[0] = 0
 
-      # b_v[M-1] = 0
-      # diagonal_v[M-1] = 1
-      # lower_v[M-2] = 0
+      b_v[M-1] = 0
+      diagonal_v[M-1] = 1
+      lower_v[M-2] = 0
 
       # Solves the tridiagonal system for the column
-      row = tridiag(lower_v, diagonal_v, upper_v, b_v)
-      
-      for j in range(M):
-        p[j,i] = row[j]
+      p_intermediate[:, i]= tridiag(lower_v, diagonal_v, upper_v, b_v)
 
     # Second evolution: differential wrt x
     # For each value of v, a tridiagonal system is solved to find values of x
@@ -162,20 +113,17 @@ def funker_plank( double [:,:] p0,
 
         b_x[i] = p_intermediate[j, i]
 
-      # # Boundary conditions
-      # b_x[0] = 0
-      # diagonal_x[0] = 1
-      # upper_x[0] = 0
+      # Boundary conditions
+      b_x[0] = 0
+      diagonal_x[0] = 1
+      upper_x[0] = 0
 
-      # b_x[M-1] = 0
-      # diagonal_x[N-1] = 1
-      # lower_x[N-2] = 0
+      b_x[M-1] = 0
+      diagonal_x[N-1] = 1
+      lower_x[N-2] = 0
       
       # Solves the tridiagonal system for the row
-      row =  tridiag(lower_x, diagonal_x, upper_x, b_x)
-
-      for i in range(N):
-        p[j, i] = row[i]
+      p[j, :] =  tridiag(lower_x, diagonal_x, upper_x, b_x)
 
     # Takes trace of normalization
     if save_norm:

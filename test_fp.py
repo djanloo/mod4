@@ -14,7 +14,7 @@ X, V = np.meshgrid(x,v)
 
 # initial condition
 x0, v0 = 0, 2
-sx, sv = 0.1,  0.1
+sx, sv = 0.6,  0.6
 p0 = np.exp( -((X-x0)/sx)**2 - ((V-v0)/sv)**2)
 p0 /= np.sum(p0)*np.diff(x)[0]*np.diff(v)[0]
 
