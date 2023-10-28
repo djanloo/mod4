@@ -8,6 +8,8 @@ cimport numpy as np
 from time import perf_counter
 from libc.math cimport sin
 
+from .utils import quad_int
+
 cdef double [:] tridiag(double [:] lower, double [:] diag, double [:] upper, double [:] d):
     """Solve the tridiagonal system by Thomas Algorithm"""
     cdef int N = len(diag)
@@ -26,7 +28,7 @@ cdef double [:] tridiag(double [:] lower, double [:] diag, double [:] upper, dou
     return(np.array(x))
 
 cdef double a(double x, double v, double time, dict physical_params):
-  return physical_params['omega_squared']*x + physical_params['gamma']*v + time
+  return physical_params['omega_squared']*x + physical_params['gamma']*v
 
 cdef double d_a(double x, double v, double time_index, dict physical_params):
   '''Differential of a wrt v'''
@@ -38,8 +40,6 @@ def funker_plank( double [:,:] p0,
                     integration_params,
                     save_norm = False
                     ):
-  print(f"physical_params: {physical_params}")
-  print(f"integration_params: {integration_params}")
   cdef double dt   = integration_params['dt']
   cdef unsigned int n_steps = integration_params['n_steps']
   cdef float t0    = physical_params.get('t0', 0.0)
@@ -56,7 +56,7 @@ def funker_plank( double [:,:] p0,
 
   cdef double theta = 0.5 * dt/dv
   cdef double alpha = 0.5 * dt/dx 
-  cdef double eta = physical_params['sigma']*dt/dv**2
+  cdef double eta = 0.5*physical_params['sigma']*dt/dv**2
   
   # Declarations of the diagonals
   cdef double [:] lower_x, diagonal_x, upper_x, b_x
@@ -88,19 +88,14 @@ def funker_plank( double [:,:] p0,
           lower_v[j] =  - eta
           lower_v[j] += theta * a(x[i], v[j+1], t0 + time_index*dt, physical_params)
           lower_v[j] -= 0.25 * dt * d_a(x[i], v[j+1], t0 + time_index*dt, physical_params)
-        b_v[j] =  p[j, i]
-
-      # Boundary conditions
-      b_v[0] = 0
-      diagonal_v[0] = 1
-      upper_v[0] = 0
-
-      b_v[M-1] = 0
-      diagonal_v[M-1] = 1
-      lower_v[M-2] = 0
+        b_v[j] =  p[j, i]      
 
       # Solves the tridiagonal system for the column
       p_intermediate[:, i]= tridiag(lower_v, diagonal_v, upper_v, b_v)
+
+      # Boundary conditions
+      p_intermediate[0, i] = 0.0
+      p_intermediate[M-1, i] = 0.0
 
     # Second evolution: differential wrt x
     # For each value of v, a tridiagonal system is solved to find values of x
@@ -112,25 +107,15 @@ def funker_plank( double [:,:] p0,
         upper_x[i] =   alpha * v[j]
 
         b_x[i] = p_intermediate[j, i]
-
-      # Boundary conditions
-      b_x[0] = 0
-      diagonal_x[0] = 1
-      upper_x[0] = 0
-
-      b_x[M-1] = 0
-      diagonal_x[N-1] = 1
-      lower_x[N-2] = 0
       
       # Solves the tridiagonal system for the row
       p[j, :] =  tridiag(lower_x, diagonal_x, upper_x, b_x)
 
+      # Boundary conditions
+      p[j, 0] = 0.0
+      p[j, N-1] = 0.0
+      
     # Takes trace of normalization
     if save_norm:
-      for i in range(N):
-        for j in range(M):
-          norm[time_index] += p[j,i]
-      
-      norm[time_index] *= dx * dv
-  print(f"last time is {time_index*dt}")
+      norm[time_index] = quad_int(p, x, v)
   return p, norm

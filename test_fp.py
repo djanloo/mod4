@@ -1,4 +1,5 @@
 from mod4.diffeq import funker_plank
+from mod4.utils import quad_int
 import numpy as np
 import matplotlib
 matplotlib.use('TkAgg', force=True)
@@ -13,10 +14,10 @@ x, v = np.linspace(-Lx ,Lx, 80, endpoint=False), np.linspace(-Lv, Lv, 80, endpoi
 X, V = np.meshgrid(x,v)
 
 # initial condition
-x0, v0 = 0, 2
+x0, v0 = 0, 0
 sx, sv = 0.6,  0.6
 p0 = np.exp( -((X-x0)/sx)**2 - ((V-v0)/sv)**2)
-p0 /= np.sum(p0)*np.diff(x)[0]*np.diff(v)[0]
+p0 /= quad_int(p0, x, v)
 
 # Integration settings & physical parameters
 integration_params = dict(dt=np.pi/1000.0, n_steps=1000)
