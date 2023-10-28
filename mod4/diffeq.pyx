@@ -56,7 +56,7 @@ def funker_plank( double [:,:] p0,
 
   cdef double theta = 0.5 * dt/dv
   cdef double alpha = 0.5 * dt/dx 
-  cdef double eta = 0.5*physical_params['sigma']*dt/dv**2
+  cdef double eta = 0.5*physical_params['sigma']**2*dt/dv**2
   
   # Declarations of the diagonals
   cdef double [:] lower_x, diagonal_x, upper_x, b_x
@@ -114,7 +114,7 @@ def funker_plank( double [:,:] p0,
       # Boundary conditions
       p[j, 0] = 0.0
       p[j, N-1] = 0.0
-      
+
     # Takes trace of normalization
     if save_norm:
       norm[time_index] = quad_int(p, x, v)
