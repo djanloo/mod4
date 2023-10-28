@@ -14,8 +14,7 @@ X, V = np.meshgrid(x,v)
 p0 = np.exp( -((X-x0)/sx)**2 - ((V-v0)/sv)**2)
 p0 /= np.sum(p0)*np.diff(x)[0]*np.diff(v)[0]
 
-physical_params = dict(alpha=1.0, gamma=2.1, sigma= 0.8, eps=0.01, omega=1.2, U0=0.3)
-
+physical_params = dict(omega_squared=1.0, gamma=2.1, sigma= 0.8)
 
 N_grid_points = 10
 N_time_points = 10
