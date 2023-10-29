@@ -92,13 +92,12 @@ cpdef complex [:,:] analytic(double [:, :] X, double [:,:] V, double time,
     detG=G[0,0]*G[1,1] - G[1,0]*G[0,1]
     # print(f"detG = {detG} --- exp(det -gamma t) = {np.exp(-omega_squared*time)} ")
 
-    Sigm11 = sigma**2/gamma/(gamma**2 - 4*omega_squared)*( gamma/omega_squared - 4*(1- exp1*exp2)/gamma - exp1**2/l1 - exp2**2/l2)
-    Sigm12 = sigma**2/gamma/(gamma**2 - 4*omega_squared)*(exp1 - exp2)**2
-    Sigm22 = sigma**2/gamma/(gamma**2 - 4*omega_squared)*( gamma + 4*omega_squared/gamma*(exp1*exp2 - 1) - l1*exp1**2 -l2*exp2**2)
+    Sigm11 = 0.5*sigma**2/(gamma**2 - 4*omega_squared)*( gamma/omega_squared - 4*(1- exp1*exp2)/gamma - exp1**2/l1 - exp2**2/l2)
+    Sigm12 = 0.5*sigma**2/(gamma**2 - 4*omega_squared)*(exp1 - exp2)**2
+    Sigm22 = 0.5*sigma**2/(gamma**2 - 4*omega_squared)*( gamma + 4*omega_squared/gamma*(exp1*exp2 - 1) - l1*exp1**2 -l2*exp2**2)
 
     S = np.array([  [Sigm11, Sigm12],
                     [Sigm12, Sigm22]], dtype=complex)
-    # print("S", np.array(S))
 
     normalization = 2*np.pi*np.sqrt(np.linalg.det(S))
     S_inv = stupid_inverse(S)

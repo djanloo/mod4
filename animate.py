@@ -15,7 +15,7 @@ t0 = .95
 
 # integration & physical parameters
 integration_params = dict(dt=np.pi/1000, n_steps=20)
-physical_params = dict(omega_squared=1.0, gamma=2.1, sigma=0.8)
+physical_params = dict(omega_squared=1.0, gamma=2.0001, sigma=0.8)
 
 # Initial conditions
 x0, v0 = 0,3
@@ -56,7 +56,7 @@ def update(i):
     physical_params['t0'] = i*integration_params['n_steps']*integration_params['dt']
 
     # Numeric
-    p_num , norm = funker_plank(p_num, x, v, physical_params, integration_params, save_norm=True)
+    p_num , norm , curr = funker_plank(p_num, x, v, physical_params, integration_params, save_norm=True)
     p_num = np.array(p_num)
     p_num[p_num<0] = 0
     p_num /= norm[-1]
