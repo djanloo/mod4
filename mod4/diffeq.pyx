@@ -1,3 +1,4 @@
+# distutils: language = c++
 from cython.parallel import prange
 import numpy as np
 
@@ -74,7 +75,14 @@ def funker_plank( double [:,:] p0,
                             bottom=np.zeros(n_steps), 
                             left=np.zeros(n_steps),
                             right=np.zeros(n_steps))
-
+  # Boundary: pre
+  for i in range(N):
+    p[0,i] = 0
+    p[M-1, i] = 0
+  
+  for j in range(M):
+    p[j, 0] = 0
+    p[j, N-1] = 0
 
   for time_index in range(n_steps):
     # First evolution: differential wrt V
@@ -94,12 +102,6 @@ def funker_plank( double [:,:] p0,
           lower_v[j] -= 0.25 * dt * d_a(x[i], v[j+1], t0 + time_index*dt, physical_params)
         b_v[j] =  p[j, i]      
 
-      # Solves the tridiagonal system for the column
-      p_intermediate[:, i]= tridiag(lower_v, diagonal_v, upper_v, b_v)
-
-      # Boundary conditions
-      p_intermediate[0, i] = 0.0
-      p_intermediate[M-1, i] = 0.0
 
       # # #Old Boundary conditions
       # b_v[0] = 0
@@ -109,6 +111,13 @@ def funker_plank( double [:,:] p0,
       # b_v[N-1] = 0
       # diagonal_v[N-1] = 1
       # lower_v[N-2] = 0
+
+      # Solves the tridiagonal system for the column
+      p_intermediate[:, i]= tridiag(lower_v, diagonal_v, upper_v, b_v)
+
+      # Boundary conditions
+      p_intermediate[0, i] = 0.0
+      p_intermediate[M-1, i] = 0.0
 
     # Second evolution: differential wrt x
     # For each value of v, a tridiagonal system is solved to find values of x
@@ -120,13 +129,6 @@ def funker_plank( double [:,:] p0,
         upper_x[i] =   alpha * v[j]
 
         b_x[i] = p_intermediate[j, i]
-      
-      # Solves the tridiagonal system for the row
-      p[j, :] =  tridiag(lower_x, diagonal_x, upper_x, b_x)
-
-      # Boundary conditions
-      p[j, 0] = 0.0
-      p[j, N-1] = 0.0
 
       # # #Old Boundary conditions
       # b_x[0] = 0
@@ -136,6 +138,13 @@ def funker_plank( double [:,:] p0,
       # b_x[M-1] = 0
       # diagonal_x[N-1] = 1
       # lower_x[N-2] = 0
+
+      # Solves the tridiagonal system for the row
+      p[j, :] =  tridiag(lower_x, diagonal_x, upper_x, b_x)
+
+      # Boundary conditions
+      p[j, 0] = 0.0
+      p[j, N-1] = 0.0
       
     # Takes trace of normalization
     if save_norm:

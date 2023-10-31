@@ -37,7 +37,7 @@ for i, n_steps in enumerate(nsteps):
         p0 /= np.sum(p0)*np.diff(x)[0]*np.diff(v)[0]
 
         start = perf_counter()
-        p , norm = funker_plank(p0, x, v, physical_params, integration_params, save_norm=False)
+        p , norm, curr = funker_plank(p0, x, v, physical_params, integration_params, save_norm=False)
         times[i,j] = (perf_counter() - start)*1e6 # conversione in us
 
 
