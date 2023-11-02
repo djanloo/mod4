@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from mod4.utils import analytic
-from mod4.diffeq import funker_plank
+from mod4.diffeq import funker_plank, funker_plank_original
 from mod4.utils import quad_int
 
 FRAMES = 300
@@ -56,7 +56,7 @@ def update(i):
     physical_params['t0'] = i*integration_params['n_steps']*integration_params['dt']
 
     # Numeric
-    p_num , norm , curr = funker_plank(p_num, x, v, physical_params, integration_params, save_norm=True)
+    p_num , norm , curr = funker_plank_original(p_num, x, v, physical_params, integration_params, save_norm=True)
     p_num = np.array(p_num)
     p_num[p_num<0] = 0
     p_num /= norm[-1]

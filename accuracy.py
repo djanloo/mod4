@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns; sns.set()
 
-from mod4.diffeq import funker_plank
+from mod4.diffeq import funker_plank, funker_plank_original
 from mod4.utils import analytic, quad_int
 
 
@@ -94,16 +94,19 @@ p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
 p0 /= quad_int(p0, x,v)
 
 integration_params = dict(dt=np.pi/1000, n_steps=5)
-p_num, norm, curr = funker_plank(p0, x, v, physical_params, integration_params, save_norm=True, save_current=True)
+p_num, norm, curr = funker_plank_original(p0, x, v, physical_params, integration_params, save_norm=True, save_current=True)
 p_an = np.real(analytic(X,V, t0+ integration_params['dt']*integration_params['n_steps'] , x0, v0, physical_params))
 p_num = np.array(p_num)
 p_num[p_num<0] = 1e-40
-error = np.sqrt(np.mean( (p_num - p_an)**2))
-print(error)
+error_RMS = np.sqrt(np.mean( (p_num - p_an)**2))
+error_SUP = np.max(np.abs(p_num - p_an))
+print(f"RMS error is {error_RMS}")
+print(f"SUP error is {error_SUP}")
+
 print(np.array(norm)[-1])
 
 plt.figure(1, figsize=(10/2.54, 10/2.54))
-plt.contourf(X, V, (p_num-p_an)/error)
+plt.contourf(X, V, (p_num-p_an)/error_RMS)
 plt.colorbar(shrink=0.72)
 plt.contour(X, V, p_an, colors="w", levels=np.logspace(-8, -2, 4))
 plt.title(r"$\left(p_{numeric} - p_{analytic}\right)/\langle e \rangle$")
@@ -137,9 +140,9 @@ img = axes['a'].contourf(np.log(p_an),levels=levels)
 axes['e'].contourf(np.log(np.abs((p_num-p_an))),levels=levels)
 plt.colorbar(img, cax = axes['c'], shrink=0.1)
 
-axes['n'].set_title("numeric")
-axes['a'].set_title("exact")
-axes['e'].set_title("error")
+axes['n'].set_title("Numerica")
+axes['a'].set_title("Esatta")
+axes['e'].set_title("Errore")
 plt.show()
 exit()
 ################### TEST 2: time dependence ##################################
