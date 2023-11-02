@@ -206,10 +206,10 @@ def funker_plank_original( double [:,:] p0,
         diagonal_v[j] = 1 + 2*eta - theta*(a(x[i], v[i] + 0.5*dv, time_index*dt, physical_params) - a(x[i], v[i] - 0.5*dv, time_index*dt, physical_params))
         
         upper_v[j]  = - eta
-        upper_v[j] -= 0.5 * theta * a(x[i], v[j] + 0.5 * dv, t0 + time_index*dt, physical_params)
+        upper_v[j] -= theta * a(x[i], v[j] + 0.5 * dv, t0 + time_index*dt, physical_params)
 
         lower_v[j] =  - eta
-        lower_v[j] += 0.5* theta * a(x[i], v[j] + dv - 0.5 * dv, t0 + time_index*dt, physical_params)
+        lower_v[j] += theta * a(x[i], v[j] + dv - 0.5 * dv, t0 + time_index*dt, physical_params)
 
         b_v[j] =  p[j, i]      
 
@@ -252,9 +252,9 @@ def funker_plank_original( double [:,:] p0,
       # Integral in x
       for i in range(N):
         currents['top'][time_index] += a(x[i], v[M-2],  t0 + time_index*dt, physical_params)*p[M-2, i]*dx
-        currents['top'][time_index] -= 0.5*physical_params['sigma']**2*( (p[M-1,i] - p[M-2,i])/dv )*dx
+        currents['top'][time_index] += 0.5*physical_params['sigma']**2*( (p[M-1,i] - p[M-2,i])/dv )*dx
 
         currents['bottom'][time_index] -= a(x[i], v[2],  t0 + time_index*dt, physical_params)*p[2, i]*dx
-        currents['bottom'][time_index] += 0.5*physical_params['sigma']**2*( (p[1,i] - p[0,i])/dv )*dx
+        currents['bottom'][time_index] -= 0.5*physical_params['sigma']**2*( (p[1,i] - p[0,i])/dv )*dx
 
   return p, norm, currents

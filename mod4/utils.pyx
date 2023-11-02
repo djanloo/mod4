@@ -78,19 +78,16 @@ cpdef complex [:,:] analytic(double [:, :] X, double [:,:] V, double time,
 
     N, M = X.shape[0], X.shape[1]
     omega_squared, gamma, sigma = map(physical_params.get, ['omega_squared', 'gamma', 'sigma'])
-    under_root = (0.5*gamma)**2 - omega_squared**2
+
+    under_root = (0.5*gamma)**2 - omega_squared 
     if under_root < 0:
         l1, l2 = 0.5*gamma + 1j*np.sqrt(-under_root),  0.5*gamma - 1j*np.sqrt(-under_root)
     else:
         l1, l2 = 0.5 * gamma + np.sqrt(under_root), 0.5 * gamma - np.sqrt(under_root)
+
     exp1, exp2 = np.exp(-l1*time), np.exp(-l2*time)
-    # print(f"Determinant of gamma matrix: {omega_squared:.1f}")
     G = np.array([[(l1*exp2 - l2*exp1)/(l1 - l2), (exp2 - exp1)/(l1 -l2)],
          [omega_squared*(exp1 - exp2)/(l1-l2), (l1*exp1 - l2*exp2)/(l1 -l2)]], dtype=complex)
-
-    # print("G", np.array(G))
-    detG=G[0,0]*G[1,1] - G[1,0]*G[0,1]
-    # print(f"detG = {detG} --- exp(det -gamma t) = {np.exp(-omega_squared*time)} ")
 
     Sigm11 = 0.5*sigma**2/(gamma**2 - 4*omega_squared)*( gamma/omega_squared - 4*(1- exp1*exp2)/gamma - exp1**2/l1 - exp2**2/l2)
     Sigm12 = 0.5*sigma**2/(gamma**2 - 4*omega_squared)*(exp1 - exp2)**2

@@ -28,7 +28,7 @@ fig, axes = plt.subplot_mosaic([["init", "cbar", "evol"]], width_ratios=[1,0.1,1
 
 
 
-p , norm = funker_plank(p0, x, v, physical_params, integration_params, save_norm=True)
+p , norm, curr = funker_plank(p0, x, v, physical_params, integration_params, save_norm=True)
 
 p = np.array(p)
 
