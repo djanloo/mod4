@@ -29,11 +29,17 @@ cdef double [:] tridiag(double [:] lower, double [:] diag, double [:] upper, dou
     return(np.array(x))
 
 cdef double a(double x, double v, double time, dict physical_params):
+  '''potential/ drag function'''
   return  physical_params['omega_squared']*x + physical_params['gamma']*v
 
 cdef double d_a(double x, double v, double time_index, dict physical_params):
-  '''Differential of a wrt v'''
+  '''Derivative of potential wrt v'''
   return physical_params['gamma']
+
+cdef double sigma_squared(double x, double t, dict physical_params):
+  '''Noise function'''
+  return physical_params['sigma_squared']
+
 
 def funker_plank( double [:,:] p0, 
                     double [:] x, double [:] v,
@@ -44,7 +50,7 @@ def funker_plank( double [:,:] p0,
                     ):
   cdef double dt   = integration_params['dt']
   cdef unsigned int n_steps = integration_params['n_steps']
-  cdef float t0    = physical_params.get('t0', 0.0)
+  cdef double t0    = physical_params.get('t0', 0.0)
 
   cdef unsigned int N = len(x)
   cdef unsigned int M = len(v)
@@ -58,7 +64,8 @@ def funker_plank( double [:,:] p0,
 
   cdef double theta = 0.5 * dt/dv
   cdef double alpha = 0.5 * dt/dx 
-  cdef double eta = 0.5*physical_params['sigma']**2*dt/dv**2
+  cdef double eta = 0.5*dt/dv**2
+  cdef double time = t0
   
   # Declarations of the diagonals
   cdef double [:] lower_x, diagonal_x, upper_x, b_x
@@ -67,8 +74,7 @@ def funker_plank( double [:,:] p0,
   lower_v, upper_v, b_v = np.ones(M), np.ones(M), np.ones(M)
   lower_x, upper_x, b_x = np.ones(N), np.ones(N), np.ones(N)
 
-  # Diagonal of systems does not change
-  diagonal_v = np.ones(M) * (1 + 2*eta - 0.5*d_a(0,0,0, physical_params)*dt)
+  diagonal_v = np.ones(M)
   diagonal_x = np.ones(N)
 
   cdef dict currents = dict(top=np.zeros(n_steps), 
@@ -85,19 +91,24 @@ def funker_plank( double [:,:] p0,
     p[j, N-1] = 0
 
   for time_index in range(n_steps):
+    time = t0 + time_index*dt
     # First evolution: differential wrt V
     # For each value of x, a tridiagonal system is solved to find values of v
     for i in range(N):
 
       # Prepares tridiagonal matrix and the constant term
       for j in range(M):
-        upper_v[j]  = - eta
-        upper_v[j] -= theta * a(x[i], v[j], t0 + time_index*dt, physical_params)
-        upper_v[j] -= 0.25 * dt * d_a(x[i], v[j], t0 + time_index*dt, physical_params)
+
+        diagonal_v[j] = 1  - 0.5 * dt * d_a(x[i],v[j], time, physical_params)
+        diagonal_v[j] += 2 * eta * sigma_squared(x[i], time, physical_params)
+
+        upper_v[j]  = - eta * sigma_squared(x[i], time, physical_params)
+        upper_v[j] -= theta * a(x[i], v[j], time, physical_params)
+        upper_v[j] -= 0.25 * dt * d_a(x[i], v[j], time, physical_params)
    
-        lower_v[j] =  - eta
-        lower_v[j] += theta * a(x[i], v[j] + dv, t0 + time_index*dt, physical_params)
-        lower_v[j] -= 0.25 * dt * d_a(x[i], v[j] + dv, t0 + time_index*dt, physical_params)
+        lower_v[j] =  - eta * sigma_squared(x[i], time, physical_params)
+        lower_v[j] += theta * a(x[i], v[j] + dv, time, physical_params)
+        lower_v[j] -= 0.25 * dt * d_a(x[i], v[j] + dv, time, physical_params)
 
         b_v[j] =  p[j, i]      
 
@@ -139,10 +150,10 @@ def funker_plank( double [:,:] p0,
       # Integral in x
       for i in range(N):
         currents['top'][time_index] += a(x[i], v[M-2],  t0 + time_index*dt, physical_params)*p[M-2, i]*dx
-        currents['top'][time_index] -= 0.5*physical_params['sigma']**2*( (p[M-1,i] - p[M-2,i])/dv )*dx
+        currents['top'][time_index] -= 0.5*physical_params['sigma_squared']*( (p[M-1,i] - p[M-2,i])/dv )*dx
 
         currents['bottom'][time_index] -= a(x[i], v[2],  t0 + time_index*dt, physical_params)*p[2, i]*dx
-        currents['bottom'][time_index] += 0.5*physical_params['sigma']**2*( (p[1,i] - p[0,i])/dv )*dx
+        currents['bottom'][time_index] += 0.5*physical_params['sigma_squared']**2*( (p[1,i] - p[0,i])/dv )*dx
 
   return p, norm, currents
 
@@ -170,7 +181,7 @@ def funker_plank_original( double [:,:] p0,
 
   cdef double theta = 0.5 * dt/dv
   cdef double alpha = 0.5 * dt/dx 
-  cdef double eta = 0.5*physical_params['sigma']**2*dt/dv**2
+  cdef double eta = 0.5*physical_params['sigma_squared']*dt/dv**2
   
   # Declarations of the diagonals
   cdef double [:] lower_x, diagonal_x, upper_x, b_x

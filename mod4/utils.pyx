@@ -73,25 +73,29 @@ cpdef complex [:,:] analytic(double [:, :] X, double [:,:] V, double time,
               double x0, double v0, 
               physical_params):
     cdef unsigned int N, M, i, j
-    cdef double omega_squared, gamma, sigma
+    cdef double omega_squared, gamma, sigma_squared, under_root
     cdef complex [:,:] result, G, S
+    cdef complex delta
 
     N, M = X.shape[0], X.shape[1]
-    omega_squared, gamma, sigma = map(physical_params.get, ['omega_squared', 'gamma', 'sigma'])
+    omega_squared, gamma, sigma_squared = map(physical_params.get, ['omega_squared', 'gamma', 'sigma_squared'])
 
     under_root = (0.5*gamma)**2 - omega_squared 
+
     if under_root < 0:
         l1, l2 = 0.5*gamma + 1j*np.sqrt(-under_root),  0.5*gamma - 1j*np.sqrt(-under_root)
+        delta = 1j*np.sqrt(-under_root)
     else:
         l1, l2 = 0.5 * gamma + np.sqrt(under_root), 0.5 * gamma - np.sqrt(under_root)
-
+        delta = np.sqrt(under_root)
+    
     exp1, exp2 = np.exp(-l1*time), np.exp(-l2*time)
-    G = np.array([[(l1*exp2 - l2*exp1)/(l1 - l2), (exp2 - exp1)/(l1 -l2)],
-         [omega_squared*(exp1 - exp2)/(l1-l2), (l1*exp1 - l2*exp2)/(l1 -l2)]], dtype=complex)
+    G = np.array([[(l1*exp2 - l2*exp1)/delta, (exp2 - exp1)/delta],
+         [omega_squared*(exp1 - exp2)/delta, (l1*exp1 - l2*exp2)/delta]], dtype=complex)
 
-    Sigm11 = 0.5*sigma**2/(gamma**2 - 4*omega_squared)*( gamma/omega_squared - 4*(1- exp1*exp2)/gamma - exp1**2/l1 - exp2**2/l2)
-    Sigm12 = 0.5*sigma**2/(gamma**2 - 4*omega_squared)*(exp1 - exp2)**2
-    Sigm22 = 0.5*sigma**2/(gamma**2 - 4*omega_squared)*( gamma + 4*omega_squared/gamma*(exp1*exp2 - 1) - l1*exp1**2 -l2*exp2**2)
+    Sigm11 = 0.5*sigma_squared/delta**2*( gamma/omega_squared - 4*(1- exp1*exp2)/gamma - exp1**2/l1 - exp2**2/l2)
+    Sigm12 = 0.5*sigma_squared/delta**2*(exp1 - exp2)**2
+    Sigm22 = 0.5*sigma_squared/delta**2*( gamma + 4*omega_squared/gamma*(exp1*exp2 - 1) - l1*exp1**2 -l2*exp2**2)
 
     S = np.array([  [Sigm11, Sigm12],
                     [Sigm12, Sigm22]], dtype=complex)
