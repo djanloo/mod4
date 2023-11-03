@@ -84,18 +84,23 @@ cpdef complex [:,:] analytic(double [:, :] X, double [:,:] V, double time,
 
     if under_root < 0:
         l1, l2 = 0.5*gamma + 1j*np.sqrt(-under_root),  0.5*gamma - 1j*np.sqrt(-under_root)
-        delta = 1j*np.sqrt(-under_root)
+        l1_times_l2 = 0.5*gamma**2 - omega_squared
+        l1_plus_l2 = gamma
+        l1_minus_l2 = 2j*np.sqrt(-under_root)
+
     else:
         l1, l2 = 0.5 * gamma + np.sqrt(under_root), 0.5 * gamma - np.sqrt(under_root)
-        delta = np.sqrt(under_root)
+        l1_times_l2 = omega_squared
+        l1_plus_l2 = gamma
+        l1_minus_l2 = 2*np.sqrt(under_root)
     
     exp1, exp2 = np.exp(-l1*time), np.exp(-l2*time)
-    G = np.array([[(l1*exp2 - l2*exp1)/delta, (exp2 - exp1)/delta],
-         [omega_squared*(exp1 - exp2)/delta, (l1*exp1 - l2*exp2)/delta]], dtype=complex)
+    G = np.array([[(l1*exp2 - l2*exp1)/l1_minus_l2, (exp2 - exp1)/l1_minus_l2],
+         [omega_squared*(exp1 - exp2)/l1_minus_l2, (l1*exp1 - l2*exp2)/l1_minus_l2]], dtype=complex)
 
-    Sigm11 = 0.5*sigma_squared/delta**2*( gamma/omega_squared - 4*(1- exp1*exp2)/gamma - exp1**2/l1 - exp2**2/l2)
-    Sigm12 = 0.5*sigma_squared/delta**2*(exp1 - exp2)**2
-    Sigm22 = 0.5*sigma_squared/delta**2*( gamma + 4*omega_squared/gamma*(exp1*exp2 - 1) - l1*exp1**2 -l2*exp2**2)
+    Sigm11 = 0.5*sigma_squared/l1_minus_l2**2*( l1_plus_l2/l1_times_l2 - 4*(1- exp1*exp2)/l1_plus_l2 - exp1**2/l1 - exp2**2/l2)
+    Sigm12 = 0.5*sigma_squared/l1_minus_l2**2*(exp1 - exp2)**2
+    Sigm22 = 0.5*sigma_squared/l1_minus_l2**2*( l1_plus_l2 + 4*l1_times_l2/l1_plus_l2*(exp1*exp2 - 1) - l1*exp1**2 -l2*exp2**2)
 
     S = np.array([  [Sigm11, Sigm12],
                     [Sigm12, Sigm22]], dtype=complex)
