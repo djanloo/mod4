@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from mod4.utils import analytic
-from mod4.diffeq import funker_plank_original
+from mod4.diffeq import funker_plank_original, funker_plank
 from mod4.utils import quad_int
 
 FRAMES = 300
@@ -14,11 +14,11 @@ X, V = np.meshgrid(x,v)
 t0 = .95
 
 # integration & physical parameters
-integration_params = dict(dt=np.pi/1000, n_steps=20)
-physical_params = dict(omega_squared=1.0, gamma=2.1, sigma=0.8)
+integration_params = dict(dt=np.pi/1000, n_steps=10)
+physical_params = dict(omega_squared=1.0, gamma=1.1, sigma_squared=0.8**2)
 
 # Initial conditions
-x0, v0 = 0,3
+x0, v0 = 1,0
 p0 = analytic(X,V, t0, x0, v0, physical_params)
 
 p_num = np.real(p0)
@@ -44,7 +44,7 @@ mu_n_plot, = axes['mean'].plot([0, 1], [0, 0], label="numeric")
 mu_an_plot, = axes['mean'].plot([0,1],[0,0], label="analytic")
 sigma_an_plot = axes['var'].plot([0,1],[0,0], label="analytic")
 sigma_num_plot = axes['var'].plot([0,1],[0,0], label="numeric")
-
+axes['covar'].axis('off')
 
 def update(i):
     global p_num, p_an    
@@ -55,14 +55,14 @@ def update(i):
     physical_params['t0'] = i*integration_params['n_steps']*integration_params['dt']
 
     # Numeric
-    p_num , norm , curr = funker_plank_original(p_num, x, v, physical_params, integration_params, save_norm=True)
+    p_num , norm , curr = funker_plank(p_num, x, v, physical_params, integration_params, save_norm=True)
     p_num = np.array(p_num)
     p_num[p_num<0] = 0
     # p_num /= norm[-1]
 
     # Analytic
     p_an = analytic(X,V, t , x0, v0, physical_params)
-
+    # print(quad_int(np.real(p_an), x,v))
     # Moments
     mu_num.append(quad_int(X*np.real(p_num), x, v))
     mu_an.append(quad_int(X*np.real(p_an), x, v))
@@ -74,13 +74,14 @@ def update(i):
     axes['mean'].plot(np.linspace(t0, t, len(mu_num)),mu_num, label="numeric")
     axes['mean'].plot(np.linspace(t0, t, len(mu_an)), mu_an, label="analytic")
     axes['mean'].set_xlim(0, FRAMES*integration_params['dt']*integration_params['n_steps'])
-    axes['mean'].set_ylim(-2,2)
+    axes['mean'].set_ylim(-2,3)
 
     axes['var'].clear()
     axes['var'].plot(np.linspace(t0, t, len(sigma_num)),sigma_num, label="numeric")
     axes['var'].plot(np.linspace(t0, t, len(sigma_an)), sigma_an, label="analytic")
     axes['var'].set_xlim(0, FRAMES*integration_params['dt']*integration_params['n_steps'])
-    axes['var'].set_ylim(0,1)
+    axes['var'].set_ylim(0,3*physical_params['sigma_squared']/physical_params['gamma'])
+    axes['var'].axhline(0.5*physical_params['sigma_squared']/physical_params['gamma'], ls=":", color='k')
 
     for axname, p_to_plot in zip(['analytic', 'numeric'], [p_an, p_num]):
         axes[axname].clear()
@@ -90,10 +91,10 @@ def update(i):
     axes['mean'].legend()
     axes['var'].legend()
 
-    print(i, end="-", flush=True)
+    # print(i, end="-", flush=True)
     return  
 
 
 anim = FuncAnimation(fig, update, frames=FRAMES, interval=3/60*1e3, blit=False)
-# anim.save("anim_comparison.mp4")
+# anim.save("anim_comparison_underdamped.mp4")
 plt.show()

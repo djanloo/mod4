@@ -84,54 +84,34 @@ cpdef complex [:,:] analytic(double [:, :] X, double [:,:] V, double time,
     omega_squared, gamma, sigma_squared = map(physical_params.get, ['omega_squared', 'gamma', 'sigma_squared'])
 
     under_root = (0.5*gamma)**2 - omega_squared 
+    l1_times_l2 = omega_squared
+    l1_plus_l2 = gamma
 
     if under_root < 0:
+        # Underdamping case
         l1, l2 = 0.5*gamma + 1j*np.sqrt(-under_root),  0.5*gamma - 1j*np.sqrt(-under_root)
-        l1_times_l2 = omega_squared
-        l1_plus_l2 = gamma
         l1_minus_l2 = 2j*np.sqrt(-under_root)
-
     else:
+        # Overdamping case
         l1, l2 = 0.5 * gamma + np.sqrt(under_root), 0.5 * gamma - np.sqrt(under_root)
-        l1_times_l2 = omega_squared
-        l1_plus_l2 = gamma
         l1_minus_l2 = 2*np.sqrt(under_root)
     
     Gamma = np.array([[0, -1], [omega_squared, gamma]])
     exp1, exp2 = np.exp(-l1*time), np.exp(-l2*time)
-
-    # G = np.array([[(l1*exp2 - l2*exp1)/l1_minus_l2, (exp2 - exp1)/l1_minus_l2],
-    #      [omega_squared*(exp1 - exp2)/l1_minus_l2, (l1*exp1 - l2*exp2)/l1_minus_l2]], dtype=complex)
-
     G = expm(-Gamma*time)
-
-    print('l1_minus_l2', l1_minus_l2)
-    print('l1_times_l2', l1_times_l2)
-    print('l1_plus_l2', l1_plus_l2)
-    print('exp1', exp1)
-    print('exp2', exp2)
-    
-    # print(f"detG = {detG} --- exp(det -(sum eigen) t) = {np.exp(-l1_plus_l2*time)} ") 
 
     Sigm11 = ( l1_plus_l2/l1_times_l2 - 4*(1- exp1*exp2)/l1_plus_l2 - exp1**2/l1 - exp2**2/l2)
     Sigm12 = (exp1 - exp2)**2
     Sigm22 = ( l1_plus_l2 + 4*l1_times_l2/l1_plus_l2*(exp1*exp2 - 1) - l1*exp1**2 -l2*exp2**2)
 
-    S = np.array([  [Sigm11, Sigm12],
-                    [Sigm12, Sigm22]], dtype=complex)
+    S = 0.5*sigma_squared/l1_minus_l2**2*np.array([ [Sigm11, Sigm12],
+                                                    [Sigm12, Sigm22]], dtype=complex)
 
-    print(f"S red = {np.array(S)}")
-    print(f"det S_red = {det22(S)}")
 
-    S = 0.5*sigma_squared/l1_minus_l2**2*np.array(S)
-
-    print(f"S = {np.array(S)}")
-    print(f"detS = {det22(S)}")
     normalization = 2*np.pi*np.sqrt(det22(S))
     S_inv = stupid_inverse(S)
-    print(f"S_inv = {np.array(S_inv)}")
-
     result = np.zeros((N, M), dtype=complex)
+    
     for i in range(N):
       for j in range(M):
         extended_vect = np.array([X[i,j], V[i,j]])
