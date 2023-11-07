@@ -2,14 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from mod4.utils import analytic
-from mod4.diffeq import funker_plank_original, funker_plank
+from mod4.diffeq import  funker_plank_cn as funker_plank
 from mod4.utils import quad_int
 
 FRAMES = 300
 
 # Environment setting
 Lx, Lv = 4, 4
-x, v = np.linspace(-Lx ,Lx, 100, endpoint=False), np.linspace(-Lv, Lv, 100, endpoint=False)
+x, v = np.linspace(-Lx ,Lx, 200, endpoint=False), np.linspace(-Lv, Lv, 200, endpoint=False)
 X, V = np.meshgrid(x,v)
 t0 = .95
 
@@ -20,8 +20,9 @@ physical_params = dict(omega_squared=1.0, gamma=1.1, sigma_squared=0.8**2)
 # Initial conditions
 x0, v0 = 1,0
 p0 = analytic(X,V, t0, x0, v0, physical_params)
-
+# p0 = ((X**2 + V**2) <1).astype(float)
 p_num = np.real(p0)
+p_num /= quad_int(p_num ,x, v)
 p_an = p0
 
 # What to plot

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns; sns.set()
 from scipy.optimize import curve_fit
 
-from mod4.diffeq import  funker_plank
+from mod4.diffeq import  funker_plank_cn as funker_plank
 from mod4.utils import analytic, quad_int
 
 
@@ -109,82 +109,82 @@ from mod4.utils import analytic, quad_int
 # print(f"RMSE on p: {np.sqrt(np.mean((p_num - p_an)**2))}")
 # exit()
 ####################TEST 1: 800 timesteps ########################
-# # #Environment setting
-# Lx, Lv = 4, 4
-# dx, dv = 0.1, 0.1
-# x, v = np.linspace(-Lx ,Lx, int(2*Lx/dx), endpoint=False), np.linspace(-Lv, Lv, int(2*Lv/dv), endpoint=False)
-# X, V = np.meshgrid(x,v)
+# #Environment setting
+Lx, Lv = 4, 4
+dx, dv = 0.1, 0.1
+x, v = np.linspace(-Lx ,Lx, int(2*Lx/dx), endpoint=False), np.linspace(-Lv, Lv, int(2*Lv/dv), endpoint=False)
+X, V = np.meshgrid(x,v)
 
-# print(np.diff(x)[0], np.diff(v)[0])
+print(np.diff(x)[0], np.diff(v)[0])
 
-# # integration & physical parameters
-# physical_params = dict(omega_squared=2.5, gamma=2.1, sigma_squared=0.8**2)
+# integration & physical parameters
+physical_params = dict(omega_squared=2.5, gamma=2.1, sigma_squared=0.8**2)
 
-# # Initial conditions
-# x0, v0 = 0,0
-# t0 = 0.95
-# p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
-# p0 /= quad_int(p0, x,v)
+# Initial conditions
+x0, v0 = 0,0
+t0 = 0.95
+p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
+p0 /= quad_int(p0, x,v)
 
-# integration_params = dict(dt=np.pi/1000, n_steps=800)
-# p_num, norm, curr = funker_plank(p0, x, v, physical_params, integration_params, save_norm=True, save_current=True)
-# p_an = np.real(analytic(X,V, t0+ integration_params['dt']*integration_params['n_steps'] , x0, v0, physical_params))
-# p_num = np.array(p_num)
-# print(p_num[:, 1])
+integration_params = dict(dt=np.pi/1000, n_steps=800)
+p_num, norm, curr = funker_plank(p0, x, v, physical_params, integration_params, save_norm=True, save_current=True)
+p_an = np.real(analytic(X,V, t0+ integration_params['dt']*integration_params['n_steps'] , x0, v0, physical_params))
+p_num = np.array(p_num)
+print(p_num[:, 1])
 
-# p_num[p_num<0] = 1e-40
-# error_RMS = np.sqrt(np.mean( (p_num - p_an)**2))
-# error_SUP = np.max(np.abs(p_num - p_an))
-# print(f"RMS error is {error_RMS}")
-# print(f"SUP error is {error_SUP}")
+p_num[p_num<0] = 1e-40
+error_RMS = np.sqrt(np.mean( (p_num - p_an)**2))
+error_SUP = np.max(np.abs(p_num - p_an))
+print(f"RMS error is {error_RMS}")
+print(f"SUP error is {error_SUP}")
 
-# print(np.array(norm)[-1])
+print(np.array(norm)[-1])
 
-# plt.figure(1, figsize=(10/2.54, 10/2.54))
-# plt.contourf(X, V, (p_num-p_an)/error_RMS, cmap="rainbow")
-# plt.colorbar(shrink=0.72)
-# plt.contour(X, V, p_an, colors="w", levels=np.logspace(-8, -2, 4))
-# plt.title(r"$\left(p_{numeric} - p_{analytic}\right)/\langle e \rangle$")
-# plt.ylabel("v")
-# plt.xlabel("x")
-# plt.gca().set_aspect('equal')
-# plt.tight_layout()
+plt.figure(1, figsize=(10/2.54, 10/2.54))
+plt.contourf(X, V, (p_num-p_an)/error_RMS, cmap="rainbow")
+plt.colorbar(shrink=0.72)
+plt.contour(X, V, p_an, colors="w", levels=np.logspace(-8, -2, 4))
+plt.title(r"$\left(p_{numeric} - p_{analytic}\right)/\langle e \rangle$")
+plt.ylabel("v")
+plt.xlabel("x")
+plt.gca().set_aspect('equal')
+plt.tight_layout()
 
-# plt.figure(2, figsize=(10/2.54, 10/2.54))
-# colors = np.array(sns.color_palette('rainbow', 5))
-# plt.xlabel("t")
-# plt.plot(np.arange(len(norm)-1)*integration_params['dt'], np.diff(np.array(norm))/integration_params['dt'], label=r"$\partial_t N$",color=colors[0])
-# total_current = np.zeros(integration_params['n_steps'])
-# for key in curr.keys():
-#     # plt.plot(np.arange(len(total_current))*integration_params['dt'],np.array(curr[key]),alpha=0.5, label=f"{key} current")
-#     total_current += np.array(curr[key])
-# plt.plot(np.arange(len(total_current))*integration_params['dt'], -0.5* total_current, label=r"$- \int J \cdot n $",  color=colors[4])
-# plt.legend()
-# plt.tight_layout()
+plt.figure(2, figsize=(10/2.54, 10/2.54))
+colors = np.array(sns.color_palette('rainbow', 5))
+plt.xlabel("t")
+plt.plot(np.arange(len(norm)-1)*integration_params['dt'], np.diff(np.array(norm))/integration_params['dt'], label=r"$\partial_t N$",color=colors[0])
+total_current = np.zeros(integration_params['n_steps'])
+for key in curr.keys():
+    # plt.plot(np.arange(len(total_current))*integration_params['dt'],np.array(curr[key]),alpha=0.5, label=f"{key} current")
+    total_current += np.array(curr[key])
+plt.plot(np.arange(len(total_current))*integration_params['dt'], -0.5* total_current, label=r"$- \int J \cdot n $",  color=colors[4])
+plt.legend()
+plt.tight_layout()
 
 
-# fig, axes = plt.subplot_mosaic([["n", "a", "e", "c"]],width_ratios=[1,1,1,0.1], figsize=(21/2.54, 10/2.54), constrained_layout=True)
+fig, axes = plt.subplot_mosaic([["n", "a", "e", "c"]],width_ratios=[1,1,1,0.1], figsize=(21/2.54, 10/2.54), constrained_layout=True)
 
-# for axname in ['n', 'e', 'a']:
-#     axes[axname].set_aspect('equal')
-#     # axes[axname].set_xticklabels([])
-#     # axes[axname].set_yticklabels([])
+for axname in ['n', 'e', 'a']:
+    axes[axname].set_aspect('equal')
+    # axes[axname].set_xticklabels([])
+    # axes[axname].set_yticklabels([])
 
-# axes['a'].set_yticklabels([])
-# axes['e'].set_yticklabels([])
+axes['a'].set_yticklabels([])
+axes['e'].set_yticklabels([])
 
-# levels = np.arange(-20, 3, 2)
-# axes['n'].contourf(X, V, np.log(p_num),levels=levels, cmap="rainbow")
-# img = axes['a'].contourf(X, V,np.log(p_an),levels=levels, cmap="rainbow")
-# axes['e'].contourf(X, V,np.log(np.abs((p_num-p_an))),levels=levels, cmap="rainbow")
-# plt.colorbar(img, cax = axes['c'], shrink=0.1)
+levels = np.arange(-20, 3, 2)
+axes['n'].contourf(X, V, np.log(p_num),levels=levels, cmap="rainbow")
+img = axes['a'].contourf(X, V,np.log(p_an),levels=levels, cmap="rainbow")
+axes['e'].contourf(X, V,np.log(np.abs((p_num-p_an))),levels=levels, cmap="rainbow")
+plt.colorbar(img, cax = axes['c'], shrink=0.1)
 
-# axes['n'].set_title("Numerica")
-# axes['a'].set_title("Esatta")
-# axes['e'].set_title("Errore")
-# plt.show()
-# exit()
-# ################# TEST 2: time dependence ##################################
+axes['n'].set_title("Numerica")
+axes['a'].set_title("Esatta")
+axes['e'].set_title("Errore")
+plt.show()
+exit()
+################# TEST 2: time dependence ##################################
 # # Environment setting
 # Lx, Lv = 2, 2
 # dx, dv = 0.05, 0.05
@@ -367,126 +367,83 @@ from mod4.utils import analytic, quad_int
 # plt.yscale('log')
 # plt.show()
 ############################# TEST 4: Time dependence ####################################
-# Environment setting
-Lx, Lv = 4, 4
-dx, dv = 0.1, 0.1
-x, v = np.linspace(-Lx ,Lx, int(2*Lx/dx), endpoint=False), np.linspace(-Lv, Lv, int(2*Lv/dv), endpoint=False)
-X, V = np.meshgrid(x,v)
+# # Environment setting
+# Lx, Lv = 4, 4
+# dx, dv = 0.1, 0.1
+# x, v = np.linspace(-Lx ,Lx, int(2*Lx/dx), endpoint=False), np.linspace(-Lv, Lv, int(2*Lv/dv), endpoint=False)
+# X, V = np.meshgrid(x,v)
 
-def theor_mean(t, a, t0, tau1, tau2):
-    return a*np.exp(-(t-t0)/tau1) + (1-a)*np.exp(-(t-t0)/tau2)
+# def theor_mean(t, a, t0, tau1, tau2):
+#     return a*np.exp(-(t-t0)/tau1) + (1-a)*np.exp(-(t-t0)/tau2)
 
-figm, axesmean = plt.subplot_mosaic([['mean', 'err']])
+# figm, axesmean = plt.subplot_mosaic([['mean', 'err']])
 
-figv, axesvar = plt.subplot_mosaic([['var', 'err']])
+# figv, axesvar = plt.subplot_mosaic([['var', 'err']])
 
-tau1s = dict(num=[], an=[])
-tau2s = dict(num=[], an=[])
+# tau1s = dict(num=[], an=[])
+# tau2s = dict(num=[], an=[])
 
-tau1 = lambda gamma: 0.5*gamma + np.sqrt((0.5*gamma)**2 - 1)
-tau2 = lambda gamma: 0.5*gamma - np.sqrt((0.5*gamma)**2 - 1)
+# tau1 = lambda gamma: 0.5*gamma + np.sqrt((0.5*gamma)**2 - 1)
+# tau2 = lambda gamma: 0.5*gamma - np.sqrt((0.5*gamma)**2 - 1)
 
-gammas = np.linspace(0.7, 2.4, 5)
-colors = sns.color_palette("plasma", len(gammas))
-for j, gamma in enumerate(gammas):
-    print(gamma)
-    # integration & physical parameters
-    physical_params = dict(omega_squared=1.0, gamma=gamma, sigma_squared=0.8**2)
+# gammas = np.linspace(0.7, 2.4, 5)
+# colors = sns.color_palette("plasma", len(gammas))
+# for j, gamma in enumerate(gammas):
+#     print(gamma)
+#     # integration & physical parameters
+#     physical_params = dict(omega_squared=1.0, gamma=gamma, sigma_squared=0.8**2)
 
-    t0 = 0.95
+#     t0 = 0.95
 
-    # Initial conditions
-    x0, v0 = 1,0
-    # t0 = 0.95
-    p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
-    p0 /= quad_int(p0, x,v)
-    # plt.contourf(p0)
-    # plt.show()
-    integration_params = dict(dt=np.pi/1000, n_steps=75)
+#     # Initial conditions
+#     x0, v0 = 1,0
+#     # t0 = 0.95
+#     p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
+#     p0 /= quad_int(p0, x,v)
+#     # plt.contourf(p0)
+#     # plt.show()
+#     integration_params = dict(dt=np.pi/1000, n_steps=75)
 
-    M = 40
-    tt = t0+np.arange(M)*integration_params['dt']*integration_params['n_steps']
+#     M = 40
+#     tt = t0+np.arange(M)*integration_params['dt']*integration_params['n_steps']
 
-    p_num = p0.copy()
-    stats = dict()
+#     p_num = p0.copy()
+#     stats = dict()
 
-    for sol in ['num', 'an', 'diff', 'err']:
-        stats[sol] = dict()
-        stats[sol]['mean'] = np.zeros(M)
-        stats[sol]['var'] = np.zeros(M)
+#     for sol in ['num', 'an', 'diff', 'err']:
+#         stats[sol] = dict()
+#         stats[sol]['mean'] = np.zeros(M)
+#         stats[sol]['var'] = np.zeros(M)
     
 
-    for i in range(M):
-        p_num, norm, curr = funker_plank(p_num, x, v, physical_params, integration_params, save_norm=True, save_current=False)
-        norm = np.array(norm)
-        stats['num']['mean'][i] = quad_int(p_num*X, x,v)/norm[-1]
-        stats['num']['var'][i] = quad_int(p_num*(X - stats['num']['mean'][i])**2, x,v)/norm[-1]
-        p_an = np.real(analytic(X,V, t0 + (i+1)*integration_params['dt']*integration_params['n_steps'] , x0, v0, physical_params))
-        stats['an']['mean'][i] = quad_int(p_an*X, x,v)
-        stats['an']['var'][i] = quad_int(p_an*(X - stats['an']['mean'][i])**2, x,v)
-        stats['diff']['mean'] = stats['num']['mean'] - stats['an']['mean']
-        stats['diff']['var'] = stats['num']['var'] - stats['an']['var']
-        stats['err']['mean'] = stats['diff']['mean']*1e4
-        stats['err']['var'] = stats['diff']['var']*1e4
+#     for i in range(M):
+#         p_num, norm, curr = funker_plank(p_num, x, v, physical_params, integration_params, save_norm=True, save_current=False)
+#         norm = np.array(norm)
+#         stats['num']['mean'][i] = quad_int(p_num*X, x,v)/norm[-1]
+#         stats['num']['var'][i] = quad_int(p_num*(X - stats['num']['mean'][i])**2, x,v)/norm[-1]
+#         p_an = np.real(analytic(X,V, t0 + (i+1)*integration_params['dt']*integration_params['n_steps'] , x0, v0, physical_params))
+#         stats['an']['mean'][i] = quad_int(p_an*X, x,v)
+#         stats['an']['var'][i] = quad_int(p_an*(X - stats['an']['mean'][i])**2, x,v)
+#         stats['diff']['mean'] = stats['num']['mean'] - stats['an']['mean']
+#         stats['diff']['var'] = stats['num']['var'] - stats['an']['var']
+#         stats['err']['mean'] = stats['diff']['mean']*1e4
+#         stats['err']['var'] = stats['diff']['var']*1e4
 
     
-    # for sol in ['num', 'an']:
-    #     tt = t0+np.arange(M)*integration_params['dt']*integration_params['n_steps']
-    #     p0 = [1.22, 0.95, tau1(gamma), tau2(gamma)]
-    #     pars, popt = curve_fit(theor_mean, 
-    #                         tt, 
-    #                         stats[sol]['mean'], 
-    #                         p0=p0)
-    #     print("mean", t0, sol, pars)
-    #     # axes['mean'].plot(tt, theor_mean(tt, *pars), color='k')
-    #     tau1s[sol].append(pars[2])
-    #     tau2s[sol].append(pars[3])
-    #     # p0=[0.15, 0.15/2, 0.15/2, 1.7, 1.7]
-    #     # pars, popt = curve_fit(theor_var, 
-    #     #                     tt, 
-    #     #                     stats[sol]['var'], 
-    #     #                     p0=p0)
-    #     # print("var", t0, sol, pars)
-    #     # axes['var'].plot(tt, theor_var(tt, *pars), color="k")
-    #     # # axes['var'].plot(tt, theor_var(tt, *p0), color="k")
+#     axesmean['mean'].plot(tt, stats['num']['mean'], color=colors[j])
+#     axesmean['err'].plot(tt, stats['err']['mean'], color=colors[j])
+#     axesvar['var'].plot(tt, stats['num']['var'], color=colors[j])
+#     axesvar['err'].plot(tt, stats['err']['var'], color=colors[j])
 
 
-    # # axes['mean'].set_yscale('log')
-    # # # plt.figure(j+1)
-    # # plt.contourf(p_num)
-    axesmean['mean'].plot(tt, stats['num']['mean'], color=colors[j])
-    axesmean['err'].plot(tt, stats['err']['mean'], color=colors[j])
-    axesvar['var'].plot(tt, stats['num']['var'], color=colors[j])
-    axesvar['err'].plot(tt, stats['err']['var'], color=colors[j])
 
+# axesmean['err'].set_ylabel(r"$(\langle x \rangle_{num} - \langle x \rangle_{an})\cdot10^{4}$")
+# axesmean['mean'].set_ylabel(r"$\langle x\rangle_{num}$")
+# axesmean['mean'].set_xlabel(r"t")
+# axesmean['err'].set_xlabel(r"t")
 
-    # axes['mean'].plot(stats['an']['mean'], color="r")
-
-# print(tau1s)
-# print(tau2s)
-
-
-# opts = dict(ls="-", marker=".")
-
-# axgamm[0].plot( tau1(gammas), 100/tau1(gammas)*( np.array(tau1s['num']) - tau1(gammas)) , label=r"(sol. numerica)", **opts)
-# axgamm[0].plot( tau1(gammas), 100/tau1(gammas)*( np.array(tau1s['an'])- tau1(gammas)) , label=r"(sol. analitica)", color="k", **opts)
-# axgamm[1].plot( tau2(gammas), 100/tau2(gammas)*(np.array(tau2s['num'])- tau2(gammas)) , label=r"(sol. numerica)", **opts)
-# axgamm[1].plot( tau2(gammas), 100/tau2(gammas)*(np.array(tau2s['an'])- tau2(gammas)) , label=r"(sol. analitica)",  color="k", **opts)
-
-
-# axgamm[0].set_xlabel(r"$\tau_{1,th}$")
-# axgamm[1].set_xlabel(r"$\tau_{2,th}$")
-
-# axgamm[0].set_ylabel(r"Errore relativo [%]")
-# axgamm[0].legend()
-# axgamm[1].legend()
-axesmean['err'].set_ylabel(r"$(\langle x \rangle_{num} - \langle x \rangle_{an})\cdot10^{4}$")
-axesmean['mean'].set_ylabel(r"$\langle x\rangle_{num}$")
-axesmean['mean'].set_xlabel(r"t")
-axesmean['err'].set_xlabel(r"t")
-
-axesvar['err'].set_ylabel(r"$(var_{num} - var_{an})\cdot10^{4}$")
-axesvar['var'].set_ylabel(r"$var_{num}$")
-axesvar['var'].set_xlabel(r"t")
-axesvar['err'].set_xlabel(r"t")
-plt.show()
+# axesvar['err'].set_ylabel(r"$(var_{num} - var_{an})\cdot10^{4}$")
+# axesvar['var'].set_ylabel(r"$var_{num}$")
+# axesvar['var'].set_xlabel(r"t")
+# axesvar['err'].set_xlabel(r"t")
+# plt.show()
