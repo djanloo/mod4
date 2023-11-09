@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns; sns.set()
 from scipy.optimize import curve_fit
+import matplotlib as mpl
 
 from mod4.diffeq import  funker_plank_cn as funker_plank
 from mod4.utils import analytic, quad_int
@@ -23,6 +24,54 @@ from mod4.utils import analytic, quad_int
 # t0 = 0.1
 # p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
 # p0 /= quad_int(p0, x,v)
+################################## TEST -2: norm #########################
+# # Environment setting
+# Lx, Lv = 4, 4
+# dx, dv = 0.1, 0.1
+# x, v = np.linspace(-Lx ,Lx, int(2*Lx/dx), endpoint=False), np.linspace(-Lv, Lv, int(2*Lv/dv), endpoint=False)
+# X, V = np.meshgrid(x,v)
+# fig,axes = plt.subplot_mosaic([['exp', 'norm', 'cbar']], width_ratios = [0.55, 0.4, 0.05], sharey=False, constrained_layout=True)
+
+# # integration & physical parameters
+# dts =  np.linspace(1e-3, 1e-2, 100)
+# exps = []
+# cmap = mpl.colormaps["flare_r"].resampled(5)
+# colors = cmap(dts/max(dts))
+
+# for i, dt in enumerate(dts):
+#     nsteps = int(1.0/dt)
+#     print(nsteps)
+#     physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
+#     integration_params = dict(dt=dt, n_steps=nsteps)
+
+#     # Initial conditions
+#     x0, v0 = 0,0
+#     t0 = 1.5
+#     p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
+#     p0 /= quad_int(p0, x,v)
+
+#     p_num, norm, curr = funker_plank(p0, x, v, physical_params, integration_params, save_norm=True, save_current=False)
+#     lognorm = np.log(np.array(norm))
+#     exps.append((lognorm[-1] - lognorm[0])/integration_params['dt']/integration_params['n_steps'])
+#     axes['norm'].plot(integration_params['dt']*np.arange(integration_params['n_steps']), np.log(np.array(norm))*1e14, color=colors[i])
+
+# axes['norm'].set_ylabel(r"$\log( N(t) ) \;\;\cdot 10^{14}$")
+# axes['norm'].set_xlabel(r"$t$")
+
+# axes['exp'].plot(dts, np.array(exps)*1e14, color="k")
+# # axes['exp'].set_xscale('log')
+# axes['exp'].set_xlabel(r'$dt$')
+# axes['exp'].set_ylabel(r'$m \cdot 10 ^{14}$')
+
+
+# norm = mpl.colors.Normalize(vmin=1,vmax=10)
+# sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+# sm.set_array([])
+# # boundaries = np.round(1000*(dts - 0.5*np.diff(dts)[0]), 1)
+# # boundaries = np.concatenate((boundaries, [boundaries[-1] + 1000*np.diff(dts)[0]]))
+# # print(boundaries)
+# plt.colorbar(sm, ticks=np.arange(1,10), boundaries=np.arange(1,10)+0.5, cax=axes['cbar'], label="dt")
+# plt.show()
 
 ################################## Test -1: moments after 1000 timesteps #############################
 # # Environment setting
@@ -108,85 +157,85 @@ from mod4.utils import analytic, quad_int
 
 # print(f"RMSE on p: {np.sqrt(np.mean((p_num - p_an)**2))}")
 # exit()
-####################TEST 1: 800 timesteps ########################
-# #Environment setting
-Lx, Lv = 4, 4
-dx, dv = 0.1, 0.1
-x, v = np.linspace(-Lx ,Lx, int(2*Lx/dx), endpoint=False), np.linspace(-Lv, Lv, int(2*Lv/dv), endpoint=False)
-X, V = np.meshgrid(x,v)
+# ####################TEST 1: 800 timesteps ########################
+# # #Environment setting
+# Lx, Lv = 4, 4
+# dx, dv = 0.1, 0.1
+# x, v = np.linspace(-Lx ,Lx, int(2*Lx/dx), endpoint=False), np.linspace(-Lv, Lv, int(2*Lv/dv), endpoint=False)
+# X, V = np.meshgrid(x,v)
 
-print(np.diff(x)[0], np.diff(v)[0])
+# print(np.diff(x)[0], np.diff(v)[0])
 
-# integration & physical parameters
-physical_params = dict(omega_squared=2.5, gamma=2.1, sigma_squared=0.8**2)
+# # integration & physical parameters
+# physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
 
-# Initial conditions
-x0, v0 = 0,0
-t0 = 0.95
-p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
-p0 /= quad_int(p0, x,v)
+# # Initial conditions
+# x0, v0 = 0,0
+# t0 = 1.5
+# p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
+# p0 /= quad_int(p0, x,v)
 
-integration_params = dict(dt=np.pi/1000, n_steps=800)
-p_num, norm, curr = funker_plank(p0, x, v, physical_params, integration_params, save_norm=True, save_current=True)
-p_an = np.real(analytic(X,V, t0+ integration_params['dt']*integration_params['n_steps'] , x0, v0, physical_params))
-p_num = np.array(p_num)
-print(p_num[:, 1])
+# integration_params = dict(dt=np.pi/1000, n_steps=1000)
+# p_num, norm, curr = funker_plank(p0, x, v, physical_params, integration_params, save_norm=True, save_current=True)
+# p_an = np.real(analytic(X,V, t0+ integration_params['dt']*integration_params['n_steps'] , x0, v0, physical_params))
+# p_num = np.array(p_num)
+# print(p_num[:, 1])
 
-p_num[p_num<0] = 1e-40
-error_RMS = np.sqrt(np.mean( (p_num - p_an)**2))
-error_SUP = np.max(np.abs(p_num - p_an))
-print(f"RMS error is {error_RMS}")
-print(f"SUP error is {error_SUP}")
+# p_num[p_num<0] = 1e-40
+# error_RMS = np.sqrt(np.mean( (p_num - p_an)**2))
+# error_SUP = np.max(np.abs(p_num - p_an))
+# print(f"RMS error is {error_RMS}")
+# print(f"SUP error is {error_SUP}")
 
-print(np.array(norm)[-1])
+# print(np.array(norm)[-1])
 
-plt.figure(1, figsize=(10/2.54, 10/2.54))
-plt.contourf(X, V, (p_num-p_an)/error_RMS, cmap="rainbow")
-plt.colorbar(shrink=0.72)
-plt.contour(X, V, p_an, colors="w", levels=np.logspace(-8, -2, 4))
-plt.title(r"$\left(p_{numeric} - p_{analytic}\right)/\langle e \rangle$")
-plt.ylabel("v")
-plt.xlabel("x")
-plt.gca().set_aspect('equal')
-plt.tight_layout()
+# plt.figure(1, figsize=(10/2.54, 10/2.54))
+# plt.contourf(X, V, (p_num-p_an)/error_RMS, cmap="rainbow")
+# plt.colorbar(shrink=0.72)
+# plt.contour(X, V, p_an, colors="w", levels=np.logspace(-8, -2, 4))
+# plt.title(r"$\left(p_{numeric} - p_{analytic}\right)/\langle e \rangle$")
+# plt.ylabel("v")
+# plt.xlabel("x")
+# plt.gca().set_aspect('equal')
+# plt.tight_layout()
 
-plt.figure(2, figsize=(10/2.54, 10/2.54))
-colors = np.array(sns.color_palette('rainbow', 5))
-plt.xlabel("t")
-plt.plot(np.arange(len(norm)-1)*integration_params['dt'], np.diff(np.array(norm))/integration_params['dt'], label=r"$\partial_t N$",color=colors[0])
-total_current = np.zeros(integration_params['n_steps'])
-for key in curr.keys():
-    # plt.plot(np.arange(len(total_current))*integration_params['dt'],np.array(curr[key]),alpha=0.5, label=f"{key} current")
-    total_current += np.array(curr[key])
-plt.plot(np.arange(len(total_current))*integration_params['dt'], -0.5* total_current, label=r"$- \int J \cdot n $",  color=colors[4])
-plt.legend()
-plt.tight_layout()
+# plt.figure(2, figsize=(10/2.54, 10/2.54))
+# colors = np.array(sns.color_palette('rainbow', 5))
+# plt.xlabel("t")
+# plt.plot(np.arange(len(norm)-1)*integration_params['dt'], np.diff(np.array(norm))/integration_params['dt'], label=r"$\partial_t N$",color=colors[0])
+# total_current = np.zeros(integration_params['n_steps'])
+# for key in curr.keys():
+#     # plt.plot(np.arange(len(total_current))*integration_params['dt'],np.array(curr[key]),alpha=0.5, label=f"{key} current")
+#     total_current += np.array(curr[key])
+# plt.plot(np.arange(len(total_current))*integration_params['dt'], -0.5* total_current, label=r"$- \int J \cdot n $",  color=colors[4])
+# plt.legend()
+# plt.tight_layout()
 
 
-fig, axes = plt.subplot_mosaic([["n", "a", "e", "c"]],width_ratios=[1,1,1,0.1], figsize=(21/2.54, 10/2.54), constrained_layout=True)
+# fig, axes = plt.subplot_mosaic([["n", "a", "e", "c"]],width_ratios=[1,1,1,0.1], figsize=(21/2.54, 10/2.54), constrained_layout=True)
 
-for axname in ['n', 'e', 'a']:
-    axes[axname].set_aspect('equal')
-    # axes[axname].set_xticklabels([])
-    # axes[axname].set_yticklabels([])
+# for axname in ['n', 'e', 'a']:
+#     axes[axname].set_aspect('equal')
+#     # axes[axname].set_xticklabels([])
+#     # axes[axname].set_yticklabels([])
 
-axes['a'].set_yticklabels([])
-axes['e'].set_yticklabels([])
+# axes['a'].set_yticklabels([])
+# axes['e'].set_yticklabels([])
 
-levels = np.arange(-20, 3, 2)
-axes['n'].contourf(X, V, np.log(p_num),levels=levels, cmap="rainbow")
-img = axes['a'].contourf(X, V,np.log(p_an),levels=levels, cmap="rainbow")
-axes['e'].contourf(X, V,np.log(np.abs((p_num-p_an))),levels=levels, cmap="rainbow")
-plt.colorbar(img, cax = axes['c'], shrink=0.1)
+# levels = np.arange(-20, 3, 2)
+# axes['n'].contourf(X, V, np.log(p_num),levels=levels, cmap="rainbow")
+# img = axes['a'].contourf(X, V,np.log(p_an),levels=levels, cmap="rainbow")
+# axes['e'].contourf(X, V,np.log(np.abs((p_num-p_an))),levels=levels, cmap="rainbow")
+# plt.colorbar(img, cax = axes['c'], shrink=0.1)
 
-axes['n'].set_title("Numerica")
-axes['a'].set_title("Esatta")
-axes['e'].set_title("Errore")
-plt.show()
-exit()
+# axes['n'].set_title("Numerica")
+# axes['a'].set_title("Esatta")
+# axes['e'].set_title("Errore")
+# plt.show()
+# exit()
 ################# TEST 2: time dependence ##################################
 # # Environment setting
-# Lx, Lv = 2, 2
+# Lx, Lv = 4, 4
 # dx, dv = 0.05, 0.05
 # x, v = np.linspace(-Lx ,Lx, int(2*Lx/dx), endpoint=False), np.linspace(-Lv, Lv, int(2*Lv/dv), endpoint=False)
 # X, V = np.meshgrid(x,v)
@@ -253,7 +302,7 @@ exit()
 
 ############# TEST 2.5: matching time
 # # Environment setting
-# Lx, Lv = 2, 2
+# Lx, Lv = 4, 4
 # dx, dv = 0.1, 0.1
 # x, v = np.linspace(-Lx ,Lx, int(2*Lx/dx), endpoint=False), np.linspace(-Lv, Lv, int(2*Lv/dv), endpoint=False)
 # X, V = np.meshgrid(x,v)
@@ -366,7 +415,7 @@ exit()
 
 # plt.yscale('log')
 # plt.show()
-############################# TEST 4: Time dependence ####################################
+# ############################# TEST 4: Time dependence ####################################
 # # Environment setting
 # Lx, Lv = 4, 4
 # dx, dv = 0.1, 0.1
@@ -377,7 +426,6 @@ exit()
 #     return a*np.exp(-(t-t0)/tau1) + (1-a)*np.exp(-(t-t0)/tau2)
 
 # figm, axesmean = plt.subplot_mosaic([['mean', 'err']])
-
 # figv, axesvar = plt.subplot_mosaic([['var', 'err']])
 
 # tau1s = dict(num=[], an=[])
@@ -447,3 +495,67 @@ exit()
 # axesvar['var'].set_xlabel(r"t")
 # axesvar['err'].set_xlabel(r"t")
 # plt.show()
+
+###################################3 TEST 5: local and global truncation error
+
+# Environment setting
+Lx, Lv = 4, 4
+dx, dv = 0.1, 0.1
+x, v = np.linspace(-Lx ,Lx, int(2*Lx/dx), endpoint=False), np.linspace(-Lv, Lv, int(2*Lv/dv), endpoint=False)
+X, V = np.meshgrid(x,v)
+
+fig, axes = plt.subplot_mosaic([['loc', 'glob']], constrained_layout=True, sharey=True)
+
+# integration & physical parameters
+physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
+
+# Initial conditions
+x0, v0 = 1,0
+t0 = 0.95
+p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
+p0 /= quad_int(p0, x,v)
+
+M = 5
+dts = np.logspace(-4, -2, M)
+rmse = np.ones(M)
+for nsteps in np.arange(1, 10, 5):
+    print(nsteps)
+    for i in range(M):
+        integration_params = dict(dt=dts[i], n_steps=nsteps)
+
+        p_num ,norm, curr = funker_plank(p0, x, v, physical_params, integration_params)
+        p_num = np.array(p_num)
+        p_num[p_num<0] = 0.0
+        p_an = np.real(analytic(X,V, t0+dts[i]*integration_params['n_steps'], x0, v0, physical_params))
+        rmse[i] = np.sqrt(np.mean((p_num - p_an)**2))
+    axes['loc'].plot(dts, rmse, marker=".", label=f"{nsteps} steps")
+axes['loc'].set_yscale('log')
+axes['loc'].set_xscale('log')
+axes['loc'].legend()
+
+for T in np.linspace(0.1, 0.5, 3):
+    print(T)
+    for i in range(M):
+        print(i)
+        integration_params = dict(dt=dts[i], n_steps=int(T/dts[i]))
+
+        p_num ,norm, curr = funker_plank(p0, x, v, physical_params, integration_params)
+        p_num = np.array(p_num)
+        p_num[p_num<0] = 0.0
+        p_an = np.real(analytic(X,V, t0+dts[i]*integration_params['n_steps'], x0, v0, physical_params))
+        rmse[i] = np.sqrt(np.mean((p_num - p_an)**2))
+    # if T == 0.5:
+    #     fig,(a1,a2) = plt.subplots(1,2)
+    #     a1.contourf(X, V, p_num, vmin=0, vmax=0.5)
+    #     a2.contourf(X, V, p_num, vmin=0, vmax=0.5)
+    #     plt.show()
+    axes['glob'].plot(dts, rmse, marker=".", label=f"T = {T:.2f}")
+axes['glob'].set_yscale('log')
+axes['glob'].set_xscale('log')
+axes['glob'].legend()
+
+axes['glob'].set_xlabel(r"$\Delta t$")
+axes['loc'].set_xlabel(r"$\Delta t$")
+
+axes['loc'].set_ylabel(r"$||e||_{RMS}$")
+plt.show()

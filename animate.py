@@ -15,7 +15,7 @@ t0 = .95
 
 # integration & physical parameters
 integration_params = dict(dt=np.pi/1000, n_steps=10)
-physical_params = dict(omega_squared=1.0, gamma=1.1, sigma_squared=0.8**2)
+physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
 
 # Initial conditions
 x0, v0 = 1,0

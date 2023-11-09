@@ -173,13 +173,10 @@ def funker_plank_cn( double [:,:] p0,
   cdef double dx = np.diff(x)[0]
   cdef double dv = np.diff(v)[0]
 
-  cdef double theta = 0.5 * dt/dv
-  cdef double alpha = 0.5 * dt/dx 
-  cdef double eta = 0.5*dt/dv**2 ## CN
+  cdef double theta = 0.25*dt/dv  ##CN
+  cdef double alpha = 0.25 * dt/dx ##CN
+  cdef double eta = 0.25*dt/dv**2 ## CN
   cdef double time = t0
-
-  cdef double meta = 1.0
-  cdef double bb = 1e-6
   
   # Declarations of the diagonals
   cdef double [:] lower_x, diagonal_x, upper_x, b_x
@@ -205,31 +202,36 @@ def funker_plank_cn( double [:,:] p0,
       # Prepares tridiagonal matrix and the constant term
       for j in range(M):
         
-        diagonal_v[j] = 1  - 0.5 * dt * d_a(x[i],v[j], time, physical_params)
+        diagonal_v[j] = 1  - 0.5* 0.5 * dt * d_a(x[i],v[j], time, physical_params)
         diagonal_v[j] += 2 * eta * sigma_squared(x[i], time, physical_params)
 
         upper_v[j]  = - eta * sigma_squared(x[i], time, physical_params)
         upper_v[j] -= theta * a(x[i], v[j], time, physical_params)
-        upper_v[j] -= 0.25 * dt * d_a(x[i], v[j], time, physical_params)
+        upper_v[j] -= 0.5*0.25 * dt * d_a(x[i], v[j], time, physical_params)
    
         lower_v[j] =  - eta * sigma_squared(x[i], time, physical_params)
         lower_v[j] += theta * a(x[i], v[j] + dv, time, physical_params)
-        lower_v[j] -= 0.25* dt * d_a(x[i], v[j] + dv, time, physical_params)
+        lower_v[j] -= 0.5*0.25* dt * d_a(x[i], v[j] + dv, time, physical_params)
 
         b_v[j] =  p[j, i]  
 
         ## CN
         if j > 0 and j < M-1:
-          b_v[j] +=   eta *sigma_squared(x[i], time, physical_params) +    0.25 * meta * dt * d_a(x[i], v[j], time, physical_params) * p[j+1,i] 
-          b_v[j] +=   -2*eta *sigma_squared(x[i], time, physical_params) + 0.5  * meta * dt * d_a(x[i],v[j], time, physical_params)
-          b_v[j] +=   eta * sigma_squared(x[i], time, physical_params) +   0.25 * meta * dt * d_a(x[i], v[j] + dv, time, physical_params) * p[j-1, i]
-      print(f"{b_v[j] - p[j,i]}")
-      # Solves the tridiagonal system for the column
-      p_intermediate[:, i]= tridiag(lower_v, diagonal_v, upper_v, b_v)
+          # Diffusion
+          b_v[j] +=   (eta *sigma_squared(x[i], time, physical_params) )   * p[j+1,i] 
+          b_v[j] +=   (-2*eta *sigma_squared(x[i], time, physical_params) )* p[j,i]
+          b_v[j] +=   (eta * sigma_squared(x[i], time, physical_params) )  * p[j-1, i]
 
-      # Boundary conditions
-      p_intermediate[0, i] = 0.0
-      p_intermediate[M-1, i] = 0.0
+          b_v[j] += (0.25 * 0.5 * dt * d_a(x[i], v[j], time, physical_params) + theta * a(x[i], v[j], time, physical_params))*p[j+1, i]
+          b_v[j] += (0.5  * 0.5 * dt * d_a(x[i], v[j], time, physical_params))*p[j, i]
+          b_v[j] += (0.25 * 0.5 * dt * d_a(x[i], v[j], time, physical_params) - theta * a(x[i], v[j], time, physical_params))*p[j-1, i]
+
+      # Solves the tridiagonal system for the column
+      p_intermediate[:, i] = tridiag(lower_v, diagonal_v, upper_v, b_v)
+
+      # # Boundary conditions
+      # p_intermediate[0, i] = 0.0
+      # p_intermediate[M-1, i] = 0.0
 
     # Second evolution: differential wrt x
     # For each value of v, a tridiagonal system is solved to find values of x
@@ -238,16 +240,19 @@ def funker_plank_cn( double [:,:] p0,
       # Prepares tridiagonal matrix and constant term
       for i in range(N):
         lower_x[i] = - alpha * v[j]
-        upper_x[i] =   alpha * v[j]
+        upper_x[i] =   alpha * v[j] 
 
-        b_x[i] = p_intermediate[j, i]
+        b_x[i] = p_intermediate[j, i] 
+        
+        if i != 0 and i != N-1:
+          b_x[i] += alpha * v[j] * (p_intermediate[j, i-1] - p_intermediate[j, i+1])
 
       # Solves the tridiagonal system for the row
       p[j, :] =  tridiag(lower_x, diagonal_x, upper_x, b_x)
 
-      # Boundary conditions
-      p[j, 0] = 0.0
-      p[j, N-1] = 0.0
+      # # Boundary conditions
+      # p[j, 0] = 0.0
+      # p[j, N-1] = 0.0
       
     # Takes trace of normalization
     if save_norm:
