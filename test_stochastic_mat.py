@@ -1,5 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+
+plt.rcParams['font.family'] = 'TeX Gyre Pagella'
+plt.rcParams['font.size'] = 11
+plt.rcParams['figure.figsize'] = (18/2.54, 10/2.54)
 
 N = 20
 M = 10
