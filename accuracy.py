@@ -4,9 +4,15 @@ import seaborn as sns; sns.set()
 from scipy.optimize import curve_fit
 import matplotlib as mpl
 
-from mod4.diffeq import  funker_plank_cn as funker_plank
+from mod4.diffeq import  funker_plank as funker_plank
 from mod4.utils import analytic, quad_int
 
+
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = 'TeX Gyre Pagella'
+plt.rcParams['mathtext.fontset'] = 'cm'
+plt.rcParams['font.size'] = 11
+plt.rcParams['figure.figsize'] = (18/2.54, 10/2.54)
 
 # # Environment setting
 # Lx, Lv = 4, 4
@@ -498,64 +504,198 @@ from mod4.utils import analytic, quad_int
 
 ###################################3 TEST 5: local and global truncation error
 
-# Environment setting
-Lx, Lv = 4, 4
-dx, dv = 0.1, 0.1
-x, v = np.linspace(-Lx ,Lx, int(2*Lx/dx), endpoint=False), np.linspace(-Lv, Lv, int(2*Lv/dv), endpoint=False)
-X, V = np.meshgrid(x,v)
+# # Environment setting
+# Lx, Lv = 4, 4
+# dx, dv = 0.1, 0.1
+# x, v = np.linspace(-Lx ,Lx, int(2*Lx/dx), endpoint=False), np.linspace(-Lv, Lv, int(2*Lv/dv), endpoint=False)
+# X, V = np.meshgrid(x,v)
 
-fig, axes = plt.subplot_mosaic([['loc', 'glob']], constrained_layout=True, sharey=True)
+# fig, axes = plt.subplot_mosaic([['loc', 'glob']], constrained_layout=True, sharey=True)
 
-# integration & physical parameters
-physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
+# # integration & physical parameters
+# physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
 
-# Initial conditions
-x0, v0 = 1,0
-t0 = 0.95
-p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
-p0 /= quad_int(p0, x,v)
+# # Initial conditions
+# x0, v0 = 0,0
+# t0 = 0.95
+# p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
+# p0 /= quad_int(p0, x,v)
 
-M = 5
-dts = np.logspace(-4, -2, M)
-rmse = np.ones(M)
-for nsteps in np.arange(1, 10, 5):
-    print(nsteps)
-    for i in range(M):
-        integration_params = dict(dt=dts[i], n_steps=nsteps)
+# M = 5
+# dts = np.logspace(-4, -2, M)
+# rmse = np.ones(M)
+# for nsteps in np.arange(1, 10, 5):
+#     print(nsteps)
+#     for i in range(M):
+#         integration_params = dict(dt=dts[i], n_steps=nsteps)
 
-        p_num ,norm, curr = funker_plank(p0, x, v, physical_params, integration_params)
-        p_num = np.array(p_num)
-        p_num[p_num<0] = 0.0
-        p_an = np.real(analytic(X,V, t0+dts[i]*integration_params['n_steps'], x0, v0, physical_params))
-        rmse[i] = np.sqrt(np.mean((p_num - p_an)**2))
-    axes['loc'].plot(dts, rmse, marker=".", label=f"{nsteps} steps")
-axes['loc'].set_yscale('log')
-axes['loc'].set_xscale('log')
-axes['loc'].legend()
+#         p_num ,norm, curr = funker_plank(p0, x, v, physical_params, integration_params)
+#         p_num = np.array(p_num)
+#         p_num[p_num<0] = 0.0
+#         p_an = np.real(analytic(X,V, t0+dts[i]*integration_params['n_steps'], x0, v0, physical_params))
+#         rmse[i] = np.sqrt(np.mean((p_num - p_an)**2))
+#     axes['loc'].plot(dts, rmse, marker=".", label=f"{nsteps} steps")
+# axes['loc'].set_yscale('log')
+# axes['loc'].set_xscale('log')
+# axes['loc'].legend()
 
-for T in np.linspace(0.1, 0.5, 3):
-    print(T)
-    for i in range(M):
-        print(i)
-        integration_params = dict(dt=dts[i], n_steps=int(T/dts[i]))
+# for T in np.linspace(0.1, 0.5, 3):
+#     print(T)
+#     for i in range(M):
+#         print(i)
+#         integration_params = dict(dt=dts[i], n_steps=int(T/dts[i]))
 
-        p_num ,norm, curr = funker_plank(p0, x, v, physical_params, integration_params)
-        p_num = np.array(p_num)
-        p_num[p_num<0] = 0.0
-        p_an = np.real(analytic(X,V, t0+dts[i]*integration_params['n_steps'], x0, v0, physical_params))
-        rmse[i] = np.sqrt(np.mean((p_num - p_an)**2))
-    # if T == 0.5:
-    #     fig,(a1,a2) = plt.subplots(1,2)
-    #     a1.contourf(X, V, p_num, vmin=0, vmax=0.5)
-    #     a2.contourf(X, V, p_num, vmin=0, vmax=0.5)
-    #     plt.show()
-    axes['glob'].plot(dts, rmse, marker=".", label=f"T = {T:.2f}")
-axes['glob'].set_yscale('log')
-axes['glob'].set_xscale('log')
-axes['glob'].legend()
+#         p_num ,norm, curr = funker_plank(p0, x, v, physical_params, integration_params)
+#         p_num = np.array(p_num)
+#         p_num[p_num<0] = 0.0
+#         p_an = np.real(analytic(X,V, t0+dts[i]*integration_params['n_steps'], x0, v0, physical_params))
+#         rmse[i] = np.sqrt(np.mean((p_num - p_an)**2))
+#     # if T == 0.5:
+#     #     fig,(a1,a2) = plt.subplots(1,2)
+#     #     a1.contourf(X, V, p_num, vmin=0, vmax=0.5)
+#     #     a2.contourf(X, V, p_num, vmin=0, vmax=0.5)
+#     #     plt.show()
+#     axes['glob'].plot(dts, rmse, marker=".", label=f"T = {T:.2f}")
+# axes['glob'].set_yscale('log')
+# axes['glob'].set_xscale('log')
+# axes['glob'].legend()
 
-axes['glob'].set_xlabel(r"$\Delta t$")
-axes['loc'].set_xlabel(r"$\Delta t$")
+# axes['glob'].set_xlabel(r"$\Delta t$")
+# axes['loc'].set_xlabel(r"$\Delta t$")
 
-axes['loc'].set_ylabel(r"$||e||_{RMS}$")
-plt.show()
+# axes['loc'].set_ylabel(r"$||e||_{RMS}$")
+# plt.show()
+
+# ################################# TEST 6: comparison vs CN ###################
+# from mod4.diffeq import funker_plank, funker_plank_cn
+
+# # Environment setting
+# Lx, Lv = 4, 4
+# x, v = np.linspace(-Lx ,Lx, 300, endpoint=False), np.linspace(-Lv, Lv, 300, endpoint=False)
+# X, V = np.meshgrid(x,v)
+# t0 = .95
+
+# # integration & physical parameters
+# integration_params = dict(dt=3.0/1000, n_steps=15)
+# physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
+
+# # Initial conditions
+# x0, v0 = 1,0
+# p0 = analytic(X,V, t0, x0, v0, physical_params)
+
+# p_num = np.real(p0)
+# p_num /= quad_int(p_num ,x, v)
+
+# p_num_cn = p_num.copy()
+# p_an = p0
+
+# M = 20
+# rmse = np.zeros(M)
+# rmse_cn = np.zeros(M)
+
+# for i in range(M):
+#     print(i)
+#     p_num , norm , curr = funker_plank(p_num, x, v, physical_params, integration_params,)
+#     p_num_cn , norm_cn , curr_cn = funker_plank_cn(p_num_cn, x, v, physical_params, integration_params,)
+#     p_an = np.real(analytic(X,V, t0 + (i+1)*integration_params['dt']*integration_params['n_steps'], x0, v0, physical_params))
+
+#     p_num, p_num_cn = np.array(p_num), np.array(p_num_cn)
+
+#     rmse[i] = np.sqrt(np.mean((p_num - p_an)**2))
+#     rmse_cn[i] = np.sqrt(np.mean((p_num_cn - p_an)**2))
+
+# plt.plot(rmse)
+# plt.plot(rmse_cn)
+# plt.show()
+
+######################################## TEST 7: CN vs normal on dx/dv ################33
+# from mod4.diffeq import funker_plank, funker_plank_cn
+
+# # Environment setting
+# Lx, Lv = 4, 4
+
+# # integration & physical parameters
+# physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
+# integration_params = dict(dt=3.0/1000, n_steps=1)
+
+# # Initial conditions
+# x0, v0 = 0,0
+# t0 = 0.95
+
+# fig, axes = plt.subplot_mosaic([['loc', 'glob']], constrained_layout=True, sharey=False)
+
+# M = 10
+# deltas = np.logspace(-2, -1, M)
+# rmse = np.zeros(M)
+# rmse_cn = np.zeros(M)
+
+# for i in range(M):
+#     print(deltas[i])
+#     dx, dv = deltas[i], deltas[i]
+#     x, v = np.linspace(-Lx ,Lx, int(2*Lx/dx), endpoint=False), np.linspace(-Lv, Lv, int(2*Lv/dv), endpoint=False)
+#     X, V = np.meshgrid(x,v)
+
+#     p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
+
+#     p_num, norm, curr = funker_plank(p0, x, v, physical_params, integration_params,)
+#     p_num_cn, norm_cn, curr_cn = funker_plank_cn(p0, x, v, physical_params, integration_params,)
+#     p_an = np.real(analytic(X,V, t0 + integration_params['dt']*integration_params['n_steps'], x0, v0, physical_params))
+    
+#     p_num, p_num_cn = np.array(p_num), np.array(p_num_cn)
+#     rmse[i] = np.sqrt(np.mean((p_num - p_an)**2))
+#     rmse_cn[i] = np.sqrt(np.mean((p_num_cn - p_an)**2))
+
+# axes['loc'].plot(deltas, rmse, color="k",ls=":", label="IMPL")
+# axes['loc'].plot(deltas, rmse_cn,color="k",  label="CN")
+# axes['loc'].legend()
+
+# T = 1.5
+# N = 15
+# M = 3
+# DeltaT = T/N
+
+# deltas = np.logspace(-2, -1, M)
+# rmse = np.zeros(M)
+# rmse_cn = np.zeros(M)
+
+# tt = np.linspace(t0, t0+T, N)
+# colors = sns.color_palette('flare', M)
+# integration_params = dict(dt=3.0/1000)
+
+# integration_params['n_steps'] = int(DeltaT/integration_params['dt'])
+# rmse = np.zeros(N)
+# rmse_cn = np.zeros(N)
+
+# for i in range(M):
+#     dx, dv = deltas[i], deltas[i]
+#     x, v = np.linspace(-Lx ,Lx, int(2*Lx/dx), endpoint=False), np.linspace(-Lv, Lv, int(2*Lv/dv), endpoint=False)
+#     X, V = np.meshgrid(x,v)
+
+#     p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
+#     p_num, p_num_cn = p0.copy(), p0.copy()
+#     for j in range(N):
+#         print(i, j)
+#         p_num, norm, curr = funker_plank(p_num, x, v, physical_params, integration_params,)
+#         p_num_cn, norm_cn, curr_cn = funker_plank_cn(p_num_cn, x, v, physical_params, integration_params,)
+#         p_an = np.real(analytic(X,V, t0 + (j + 1)*DeltaT, x0, v0, physical_params))
+        
+#         p_num, p_num_cn = np.array(p_num), np.array(p_num_cn)
+#         rmse[j] = np.sqrt(np.mean((p_num - p_an)**2))
+#         rmse_cn[j] = np.sqrt(np.mean((p_num_cn - p_an)**2))
+
+#     axes['glob'].plot(tt, rmse, color=colors[i], ls=":", label=f"$\Delta = {dx:.2f}$ (IMPL)")
+#     axes['glob'].plot(tt, rmse_cn, color=colors[i], label=f"$\Delta = {dx:.2f}$ (CN)")
+
+# # axes['glob'].set_yscale('log')
+# # axes['glob'].set_xscale('log')
+# axes['glob'].set_xlabel(r"$t$")
+# axes['glob'].legend()
+
+# axes['loc'].set_yscale('log')
+# axes['loc'].set_xscale('log')
+# axes['loc'].set_xlabel(r"$\Delta $")
+# axes['loc'].set_ylabel(r"$||e||_{RMS}$")
+
+
+
+# plt.show()

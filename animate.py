@@ -2,25 +2,27 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from mod4.utils import analytic
-from mod4.diffeq import  funker_plank_cn as funker_plank
+from mod4.diffeq import  generic_3_step as funker_plank
 from mod4.utils import quad_int
 
 FRAMES = 300
 
 # Environment setting
 Lx, Lv = 4, 4
-x, v = np.linspace(-Lx ,Lx, 200, endpoint=False), np.linspace(-Lv, Lv, 200, endpoint=False)
+x, v = np.linspace(-Lx ,Lx, 80, endpoint=False), np.linspace(-Lv, Lv, 80, endpoint=False)
 X, V = np.meshgrid(x,v)
 t0 = .95
 
 # integration & physical parameters
-integration_params = dict(dt=np.pi/1000, n_steps=10)
+integration_params = dict(dt=np.pi/1000, n_steps=10, CN=np.array([False, False ,True]))
 physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
 
 # Initial conditions
 x0, v0 = 1,0
 p0 = analytic(X,V, t0, x0, v0, physical_params)
 # p0 = ((X**2 + V**2) <1).astype(float)
+# p0 = np.ones((len(x), len(v)))
+
 p_num = np.real(p0)
 p_num /= quad_int(p_num ,x, v)
 p_an = p0
@@ -48,9 +50,11 @@ sigma_num_plot = axes['var'].plot([0,1],[0,0], label="numeric")
 axes['covar'].axis('off')
 
 def update(i):
+    if i == 0:
+        return
     global p_num, p_an    
-    t = t0 + (i+1)*integration_params['n_steps']*integration_params['dt']
 
+    t = t0 + i*integration_params['n_steps']*integration_params['dt']
     # Sets the simulation to start at the last time 
     # Useful only for time-dependent potentials
     physical_params['t0'] = i*integration_params['n_steps']*integration_params['dt']
@@ -62,7 +66,7 @@ def update(i):
     # p_num /= norm[-1]
 
     # Analytic
-    p_an = analytic(X,V, t , x0, v0, physical_params)
+    p_an = np.real(analytic(X,V, t , x0, v0, physical_params))
     # print(quad_int(np.real(p_an), x,v))
     # Moments
     mu_num.append(quad_int(X*np.real(p_num), x, v))
@@ -70,7 +74,7 @@ def update(i):
 
     sigma_an.append(quad_int((X-mu_an[-1])**2*np.real(p_an), x,v))
     sigma_num.append(quad_int((X-mu_num[-1])**2*np.real(p_num), x,v))
-
+    print(np.sqrt(np.mean((np.array(p_num) - p_an)**2)))
     axes['mean'].clear()
     axes['mean'].plot(np.linspace(t0, t, len(mu_num)),mu_num, label="numeric")
     axes['mean'].plot(np.linspace(t0, t, len(mu_an)), mu_an, label="analytic")
@@ -81,7 +85,7 @@ def update(i):
     axes['var'].plot(np.linspace(t0, t, len(sigma_num)),sigma_num, label="numeric")
     axes['var'].plot(np.linspace(t0, t, len(sigma_an)), sigma_an, label="analytic")
     axes['var'].set_xlim(0, FRAMES*integration_params['dt']*integration_params['n_steps'])
-    axes['var'].set_ylim(0,3*physical_params['sigma_squared']/physical_params['gamma'])
+    axes['var'].set_ylim(0,physical_params['sigma_squared']/physical_params['gamma'])
     axes['var'].axhline(0.5*physical_params['sigma_squared']/physical_params['gamma'], ls=":", color='k')
 
     for axname, p_to_plot in zip(['analytic', 'numeric'], [p_an, p_num]):
@@ -96,6 +100,6 @@ def update(i):
     return  
 
 
-anim = FuncAnimation(fig, update, frames=FRAMES, interval=3/60*1e3, blit=False)
+anim = FuncAnimation(fig, update, frames=FRAMES, interval=3/60*1e3, blit=False,)
 # anim.save("anim_comparison_underdamped.mp4")
 plt.show()
