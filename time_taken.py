@@ -1,4 +1,5 @@
-from mod4.diffeq import funker_plank_original
+from mod4.diffeq import generic_3_step
+from mod4.utils import get_quad_mesh, analytic
 import numpy as np
 import matplotlib
 matplotlib.use('TkAgg', force=True)
@@ -6,15 +7,7 @@ from time import perf_counter
 
 import matplotlib.pyplot as plt
 
-Lx, Lv = 4, 4
-x0, v0 = 0.0,  0.0
-sx, sv = 0.6,  0.6
-x, v = np.linspace(-Lx ,Lx, 80, endpoint=False), np.linspace(-Lv, Lv, 80, endpoint=False)
-X, V = np.meshgrid(x,v)
-p0 = np.exp( -((X-x0)/sx)**2 - ((V-v0)/sv)**2)
-p0 /= np.sum(p0)*np.diff(x)[0]*np.diff(v)[0]
-
-physical_params = dict(omega_squared=1.0**2, gamma=2.1, sigma_squared= 0.8**2)
+physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
 
 N_grid_points = 10
 N_time_points = 10
@@ -28,18 +21,24 @@ times = np.zeros((N_time_points, N_grid_points))
 for i, n_steps in enumerate(nsteps):
 
     for j, N in enumerate(grid_dim):
+        print(i/len(nsteps)*100,"-",j/len(grid_dim)*100)
+        # integration & physical parameters
+        integration_params = dict(  dt=3.14/1000, n_steps=n_steps, 
+                                    Lx=8, Lv=8, dx=8/N, dv=8/N, 
+                                    ADI=False, 
+                                    CN=np.array([True, True, True]))
+        X, V = get_quad_mesh(integration_params)
 
-        integration_params = dict(dt=np.pi/1000.0, n_steps=n_steps)
+        # Initial conditions
+        x0, v0 = 1,0
+        t0 = .95
         
-        x, v = np.linspace(-Lx ,Lx, N, endpoint=False), np.linspace(-Lv, Lv, N, endpoint=False)
-        X, V = np.meshgrid(x,v)
-        p0 = np.exp( -((X-x0)/sx)**2 - ((V-v0)/sv)**2)
-        p0 /= np.sum(p0)*np.diff(x)[0]*np.diff(v)[0]
+        p0 = np.exp( -((X-x0)/2)**2 - ((V-v0)/2)**2)
+
 
         start = perf_counter()
-        p , norm, curr = funker_plank_original(p0, x, v, physical_params, integration_params, save_norm=False)
+        p , norm, curr = generic_3_step(p0, physical_params, integration_params, save_norm=False)
         times[i,j] = (perf_counter() - start)*1e6 # conversione in us
-
 
 times_N = np.zeros(N_grid_points)
 sigmas = np.zeros(N_grid_points)

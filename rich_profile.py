@@ -4,6 +4,7 @@ from os import chdir
 from os.path import dirname, join
 from line_profiler import LineProfiler
 from mod4 import diffeq
+from mod4.utils import get_quad_mesh, analytic
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -17,24 +18,23 @@ chdir(join(dirname(__file__), "mod4"))
 
 lp = LineProfiler()
 
-lp.add_function(diffeq.funker_plank)
-wrap = lp(diffeq.funker_plank)
+lp.add_function(diffeq.generic_3_step)
+wrap = lp(diffeq.generic_3_step)
 
-# Settings
-Lx, Lv = 4, 4
-x0, v0 = 0.0,  0.0
-sx, sv = 0.6,  0.6
+# integration & physical parameters
+integration_params = dict(  dt=3.14/1000, n_steps=10, 
+                            Lx=6, Lv=6, dx=0.1, dv=0.1, 
+                            ADI=False, 
+                            CN=np.array([False, False, False]))
+physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
+X, V = get_quad_mesh(integration_params)
 
-x, v = np.linspace(-Lx ,Lx, 80, endpoint=False), np.linspace(-Lv, Lv, 80, endpoint=False)
-X, V = np.meshgrid(x,v)
-p0 = np.exp( -((X-x0)/sx)**2 - ((V-v0)/sv)**2)
+# Initial conditions
+x0, v0 = 1,0
+t0 = .95
+p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
 
-p0 /= np.sum(p0)*np.diff(x)[0]*np.diff(v)[0]
-
-integration_params = dict(dt=np.pi/1000.0, n_steps=100)
-physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared= 0.8**2)
-
-wrap(p0, x, v, physical_params, integration_params, save_norm=True)
+wrap(p0, physical_params, integration_params, save_norm=True)
 
 lp.dump_stats("rich_profile_stats.lp")
 lp.print_stats()
