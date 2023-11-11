@@ -11,7 +11,7 @@ cimport numpy as np
 from time import perf_counter
 from libc.math cimport sin
 
-from .utils import quad_int
+from .utils import quad_int, get_tridiag
 
 cdef double [:] tridiag(double [:] lower, double [:] diag, double [:] upper, double [:] d):
     """Solve the tridiagonal system by Thomas Algorithm"""
@@ -36,6 +36,7 @@ cdef double a(double x, double v, double time, dict physical_params):
 
 cdef double d_a(double x, double v, double time_index, dict physical_params):
   '''Derivative of potential wrt v'''
+  print("Deprecated")
   return -physical_params['gamma']
 
 cdef double sigma_squared(double x, double t, dict physical_params):
@@ -381,27 +382,37 @@ def funker_plank_cn( double [:,:] p0,
 #   return p, norm, currents
 
 def generic_3_step( double [:,:] p0, 
-                    double [:] x, double [:] v,
                     physical_params,
                     integration_params,
                     save_norm = False,
                     save_current=False
                     ):
+  ## Time
   cdef double dt   = integration_params['dt']
   cdef unsigned int n_steps = integration_params['n_steps']
   cdef double t0    = physical_params.get('t0', 0.0)
 
-  cdef bool [:] CN_ized_steps = integration_params.get('CN', [])
+  ## Space
+  cdef double Lx, Lv,dx,dv
+  Lx, Lv,dx,dv = map(integration_params.get, ["Lx", "Lv", "dx", "dv"])
+  cdef unsigned int N = int(Lx/dx), M = int(Lv/dv)
+  cdef double [:] x = np.arange(-int(N)//2, int(N)//2)*dx
 
-  cdef unsigned int N = len(x)
-  cdef unsigned int M = len(v)
+  cdef double [:] v = np.arange(-int(M)//2, int(M)//2)*dv
+
+  ## Add-ons
+  cdef bool [:] CN_ized_steps = integration_params.get('CN', np.array([False, False, False]))
+  cdef bool ADI = integration_params.get("ADI", False)
+
   cdef unsigned int time_index = 0, i = 0, j = 0
 
   cdef double [:,:] p = p0.copy(), p_star = p0.copy(), p_dagger = p0.copy()
   cdef double [:] norm = np.zeros(n_steps)
+  cdef double [:] amplification_average = np.zeros(3)
 
-  cdef double dx = np.diff(x)[0]
-  cdef double dv = np.diff(v)[0]
+  if ADI:
+    print("Set to ADI mode")
+    dt = dt/3.0
 
   cdef double theta = 0.5 * dt/dv   
   cdef double alpha = 0.5 * dt/dx
@@ -430,6 +441,9 @@ def generic_3_step( double [:,:] p0,
   diagonal_2, lower_2, upper_2, b_2 = np.ones(N), np.ones(N), np.ones(N), np.ones(N)
   diagonal_3, lower_3, upper_3, b_3 = np.ones(M), np.ones(M), np.ones(M), np.ones(M)
 
+  # Working variables
+  cdef double a_plus, a_minus, s
+
   cdef dict currents = dict(top=np.zeros(n_steps), 
                             bottom=np.zeros(n_steps), 
                             left=np.zeros(n_steps),
@@ -442,27 +456,38 @@ def generic_3_step( double [:,:] p0,
       
       b_1 =  p[:, i] 
       for j in range(M):
+        # a_plus = a(x[i],v[j] + 0.5*dv, time, physical_params)
+        # a_minus =  a(x[i],v[j] - 0.5*dv, time, physical_params)
+        diagonal_1[j] = 1 + theta *( a(x[i],v[j] + 0.5*dv, time, physical_params) - a(x[i],v[j] - 0.5*dv, time, physical_params))
+        upper_1[j] =      + theta * a(x[i], v[j] + 0.5*dv, time, physical_params)
+        lower_1[j] =      - theta * a(x[i], v[j] + dv - 0.5*dv, time, physical_params)
         
-        diagonal_1[j] = 1 + theta * dv * d_a(x[i],v[j], time, physical_params)
-
-        upper_1[j] =   theta * a(x[i], v[j], time, physical_params)
-        upper_1[j] += 0.5 * theta * dv * d_a(x[i], v[j], time, physical_params)
-   
-        lower_1[j] = - theta * a(x[i], v[j] + dv, time, physical_params)
-        lower_1[j] += 0.5 * theta * dv * d_a(x[i], v[j] + dv, time, physical_params)
+        if ADI:
+          # ADI-sytle
+          if i != 0 and i != N-1:
+            # X-drift
+            b_1[j] += - alpha * v[j] * (p[j, i+1] - p[j, i-1])
+          
+          if j != 0 and j != M-1:
+            # Diffusion
+            b_1[j] +=   (   eta * sigma_squared(x[i], time, physical_params))* p[j+1,i] 
+            b_1[j] +=   (-2*eta * sigma_squared(x[i], time, physical_params))* p[j,i]
+            b_1[j] +=   (   eta * sigma_squared(x[i], time, physical_params))* p[j-1, i]
 
         if CN_ized_steps[0]:
           if j > 0 and j < M-1:
 
             # Drift
-            b_1[j] += (- 0.5 * theta * dv * d_a(x[i], v[j], time, physical_params) - theta * a(x[i], v[j], time, physical_params))*p[j+1, i]
-            b_1[j] += (- theta * dv * d_a(x[i], v[j], time, physical_params))*p[j, i]
-            b_1[j] += (- 0.5 * theta * dv * d_a(x[i], v[j], time, physical_params) + theta * a(x[i], v[j], time, physical_params))*p[j-1, i]
+            b_1[j] += (- theta * a(x[i], v[j] + 0.5*dv, time, physical_params))*p[j+1, i]
+            b_1[j] += (- theta *(a(x[i],v[j] + 0.5*dv, time, physical_params) - a(x[i],v[j] - 0.5*dv, time, physical_params)) )*p[j, i]
+            b_1[j] += (+ theta * a(x[i], v[j] - 0.5*dv, time, physical_params))*p[j-1, i]
 
-
+      # print_tridiag(lower_1, diagonal_1, upper_1)
       # Solves the tridiagonal system for the column
       p_star[:, i] = tridiag(lower_1, diagonal_1, upper_1, b_1)
-      print(f"step 1 ampl: {np.sum(p_star[:, i])/np.sum(p[:, i])}")
+      amplification_average[0] += np.sum(p_star[:, i])/np.sum(p[:,i])/N/n_steps
+      # print(f"Sum of V-rows\n{np.sum(get_tridiag(lower_1, diagonal_1, upper_1), axis=1)}")      
+      # print(f"Sum of V-cols\n{np.sum(get_tridiag(lower_1, diagonal_1, upper_1), axis=0)}")
 
     ################################### Second evolution: x-drift ######################################
     for j in range(M):
@@ -472,7 +497,21 @@ def generic_3_step( double [:,:] p0,
         lower_2[i] = - alpha * v[j]
         upper_2[i] =   alpha * v[j] 
 
-        b_2[i] = p_star[j, i] 
+        b_2[i] = p_star[j, i]
+
+        if ADI:
+          # ADI-style
+          if j != 0 and j != M-1:
+
+            # V-Drift
+            b_2[j] += (- theta * a(x[i], v[j] + 0.5*dv, time, physical_params))*p_star[j+1, i]
+            b_2[j] += (- theta *( a(x[i],v[j] + 0.5*dv, time, physical_params) - a(x[i],v[j] - 0.5*dv, time, physical_params)) )*p_star[j, i]
+            b_2[j] += (+ theta * a(x[i], v[j] - 0.5*dv, time, physical_params))*p_star[j-1, i]
+
+            # Diffusion
+            b_2[i] +=   (   eta * sigma_squared(x[i], time, physical_params))* p_star[j+1,i] 
+            b_2[i] +=   (-2*eta * sigma_squared(x[i], time, physical_params))* p_star[j,i]
+            b_2[i] +=   (   eta * sigma_squared(x[i], time, physical_params))* p_star[j-1, i]
         
         if CN_ized_steps[1]:
           if i != 0 and i != N-1:
@@ -480,7 +519,7 @@ def generic_3_step( double [:,:] p0,
       
       # Solves the tridiagonal system for the row
       p_dagger[j, :] =  tridiag(lower_2, diagonal_2, upper_2, b_2)
-      print(f"step 2 ampl: {np.sum(p_dagger[j, :])/np.sum(p_star[j, :])}")
+      amplification_average[1] += np.sum(p_dagger[j, :])/np.sum(p_star[j,:])/M/n_steps
 
     ################################### Third evolution: diffusion ######################################
     for i in range(N):
@@ -488,8 +527,19 @@ def generic_3_step( double [:,:] p0,
         
         diagonal_3[j] = 1 + 2 * eta * sigma_squared(x[i], time, physical_params)
         upper_3[j]    = - eta * sigma_squared(x[i], time, physical_params)
-        lower_3[j]    =  - eta * sigma_squared(x[i], time, physical_params)
+        lower_3[j]    = - eta * sigma_squared(x[i], time, physical_params)
         b_3[j] =  p_dagger[j, i]  
+        
+        if ADI:
+          # V-drift
+          if j!=0 and j!= M-1:
+            b_3[j] += (- theta * a(x[i], v[j] + 0.5*dv, time, physical_params))*p_dagger[j+1, i]
+            b_3[j] += (- theta *( a(x[i],v[j] + 0.5*dv, time, physical_params) - a(x[i],v[j] - 0.5*dv, time, physical_params)) )*p_dagger[j, i]
+            b_3[j] += (+ theta * a(x[i], v[j] - 0.5*dv, time, physical_params))*p_dagger[j-1, i]
+
+          if i != 0 and i != N-1:
+            # X-drift
+            b_3[j] += alpha * v[j] * (p_dagger[j, i-1] - p_dagger[j, i+1])
 
         if CN_ized_steps[2]:
           if j > 0 and j < M-1:
@@ -503,12 +553,12 @@ def generic_3_step( double [:,:] p0,
 
       # Solves the tridiagonal system for the column
       p[:, i] = tridiag(lower_3, diagonal_3, upper_3, b_3)
-      print(f"step 3 ampl: {np.sum(p[:, i])/np.sum(p_dagger[:, i])}")
+      amplification_average[2] += np.sum(p[:, i])/np.sum(p_dagger[:,i])/N/n_steps
 
     ##################################### UTILS #####################################
     # Takes trace of normalization
     if save_norm:
-      norm[time_index] = quad_int(p, x, v)
+      norm[time_index] = quad_int(p, integration_params)
 
     if save_current: 
       # Integral in v
@@ -523,5 +573,5 @@ def generic_3_step( double [:,:] p0,
 
         currents['bottom'][time_index] -= a(x[i], v[2],  t0 + time_index*dt, physical_params)*p[2, i]*dx
         currents['bottom'][time_index] += 0.5*physical_params['sigma_squared']**2*( (p[1,i] - p[0,i])/dv )*dx
-
+  print(f"Amplification averages = {np.array(amplification_average)}")
   return p, norm, currents

@@ -4,80 +4,73 @@ import seaborn as sns; sns.set()
 from scipy.optimize import curve_fit
 import matplotlib as mpl
 
-from mod4.diffeq import  funker_plank as funker_plank
-from mod4.utils import analytic, quad_int
+from mod4.diffeq import  generic_3_step as funker_plank
+from mod4.utils import analytic, quad_int, get_quad_mesh
 
 
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = 'TeX Gyre Pagella'
 plt.rcParams['mathtext.fontset'] = 'cm'
 plt.rcParams['font.size'] = 11
-plt.rcParams['figure.figsize'] = (18/2.54, 10/2.54)
+plt.rcParams['figure.figsize'] = (18/2.54, 7/2.54)
 
-# # Environment setting
-# Lx, Lv = 4, 4
-# dx, dv = 0.1, 0.1
-# x, v = np.linspace(-Lx ,Lx, int(2*Lx/dx), endpoint=False), np.linspace(-Lv, Lv, int(2*Lv/dv), endpoint=False)
-# X, V = np.meshgrid(x,v)
 
-# print(np.diff(x)[0], np.diff(v)[0])
-
-# # integration & physical parameters
-# physical_params = dict(omega_squared=1.0, gamma=2.1, sigma=0.8)
-
-# # Initial conditions
-# x0, v0 = 0,0
-# t0 = 0.1
-# p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
-# p0 /= quad_int(p0, x,v)
 ################################## TEST -2: norm #########################
-# # Environment setting
-# Lx, Lv = 4, 4
-# dx, dv = 0.1, 0.1
-# x, v = np.linspace(-Lx ,Lx, int(2*Lx/dx), endpoint=False), np.linspace(-Lv, Lv, int(2*Lv/dv), endpoint=False)
-# X, V = np.meshgrid(x,v)
-# fig,axes = plt.subplot_mosaic([['exp', 'norm', 'cbar']], width_ratios = [0.55, 0.4, 0.05], sharey=False, constrained_layout=True)
+# integration & physical parameters
+integration_params = dict(  dt=3.14/1000, n_steps=10, 
+                            Lx=8, Lv=8, dx=0.1, dv=0.1, 
+                            ADI=False, 
+                            CN=np.array([True, False, False]))
+physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
+X, V = get_quad_mesh(integration_params)
 
-# # integration & physical parameters
-# dts =  np.linspace(1e-3, 1e-2, 100)
-# exps = []
-# cmap = mpl.colormaps["flare_r"].resampled(5)
-# colors = cmap(dts/max(dts))
+# Initial conditions
+x0, v0 = 0,0
+t0 = 1.5
+p0 = analytic(X,V, t0, x0, v0, physical_params)
 
-# for i, dt in enumerate(dts):
-#     nsteps = int(1.0/dt)
-#     print(nsteps)
-#     physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
-#     integration_params = dict(dt=dt, n_steps=nsteps)
+fig,axes = plt.subplot_mosaic([['exp', 'norm', 'cbar']], width_ratios = [0.55, 0.4, 0.05], sharey=False, constrained_layout=True)
 
-#     # Initial conditions
-#     x0, v0 = 0,0
-#     t0 = 1.5
-#     p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
-#     p0 /= quad_int(p0, x,v)
+# integration & physical parameters
+dts =  np.linspace(1e-3, 1e-2, 10)
+exps = []
+cmap = mpl.colormaps["flare_r"].resampled(5)
+colors = cmap(dts/max(dts))
 
-#     p_num, norm, curr = funker_plank(p0, x, v, physical_params, integration_params, save_norm=True, save_current=False)
-#     lognorm = np.log(np.array(norm))
-#     exps.append((lognorm[-1] - lognorm[0])/integration_params['dt']/integration_params['n_steps'])
-#     axes['norm'].plot(integration_params['dt']*np.arange(integration_params['n_steps']), np.log(np.array(norm))*1e14, color=colors[i])
+for i, dt in enumerate(dts):
+    print(dt)
+    physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
+    integration_params['dt'] = dt
+    integration_params['n_steps'] = int(1.0/dt)
 
-# axes['norm'].set_ylabel(r"$\log( N(t) ) \;\;\cdot 10^{14}$")
-# axes['norm'].set_xlabel(r"$t$")
+    # Initial conditions
+    x0, v0 = 0,0
+    t0 = 1.5
+    p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
+    p0 /= quad_int(p0, integration_params)
 
-# axes['exp'].plot(dts, np.array(exps)*1e14, color="k")
-# # axes['exp'].set_xscale('log')
-# axes['exp'].set_xlabel(r'$dt$')
-# axes['exp'].set_ylabel(r'$m \cdot 10 ^{14}$')
+    p_num, norm, curr = funker_plank(p0, physical_params, integration_params, save_norm=True, save_current=False)
+    lognorm = np.log(np.array(norm))
+    exps.append((lognorm[-1] - lognorm[0])/integration_params['dt']/integration_params['n_steps'])
+    axes['norm'].plot(integration_params['dt']*np.arange(integration_params['n_steps']), np.log(np.array(norm)), color=colors[i])
+
+axes['norm'].set_ylabel(r"$\log N(t)$")
+axes['norm'].set_xlabel(r"$t$")
+
+axes['exp'].plot(dts, np.array(exps), color="k")
+# axes['exp'].set_xscale('log')
+axes['exp'].set_xlabel(r'$\Delta t$')
+axes['exp'].set_ylabel(r'$m$')
 
 
-# norm = mpl.colors.Normalize(vmin=1,vmax=10)
-# sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-# sm.set_array([])
-# # boundaries = np.round(1000*(dts - 0.5*np.diff(dts)[0]), 1)
-# # boundaries = np.concatenate((boundaries, [boundaries[-1] + 1000*np.diff(dts)[0]]))
-# # print(boundaries)
-# plt.colorbar(sm, ticks=np.arange(1,10), boundaries=np.arange(1,10)+0.5, cax=axes['cbar'], label="dt")
-# plt.show()
+norm = mpl.colors.Normalize(vmin=1,vmax=10)
+sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+sm.set_array([])
+# boundaries = np.round(1000*(dts - 0.5*np.diff(dts)[0]), 1)
+# boundaries = np.concatenate((boundaries, [boundaries[-1] + 1000*np.diff(dts)[0]]))
+# print(boundaries)
+plt.colorbar(sm, ticks=np.arange(1,10), boundaries=np.arange(1,10)+0.5, cax=axes['cbar'], label=r"$\Delta t \cdot 10^{3}$")
+plt.show()
 
 ################################## Test -1: moments after 1000 timesteps #############################
 # # Environment setting
@@ -113,7 +106,7 @@ plt.rcParams['figure.figsize'] = (18/2.54, 10/2.54)
 # print(f"num avg V2= {quad_int(V**2*p_num, x,v):.7f}")
 # print(f"num avg X2= {quad_int(X**2*p_num, x,v):.7f}")
 
-# TEST 0: moments at stationarity
+# ###################################################### TEST 0: moments at stationarity #################################################
 # # Environment setting
 # Lx, Lv = 4, 4
 # dx, dv = 0.1, 0.1
@@ -123,14 +116,14 @@ plt.rcParams['figure.figsize'] = (18/2.54, 10/2.54)
 # print(np.diff(x)[0], np.diff(v)[0])
 
 # # integration & physical parameters
-# physical_params = dict(omega_squared=1.0, gamma=2.1, sigma=0.8)
+# physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8*0.8)
 
 # # Initial conditions
 # x0, v0 = 0,1
 # t0 = 0.95
 # p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
 # p0 /= quad_int(p0, x,v)
-# integration_params = dict(dt=np.pi/1000, n_steps=100)
+# integration_params = dict(dt=np.pi/1000, n_steps=100, ADI= True, CN=np.array([False, False, False]))
 # x_old = quad_int(V**2*p0, x,v)
 # x_new = 100
 # p_num = p0.copy()
@@ -139,7 +132,7 @@ plt.rcParams['figure.figsize'] = (18/2.54, 10/2.54)
 # while abs((x_old - x_new)/x_old) > 1e-5:
     
 #     x_old = x_new
-#     p_num, norm, curr = funker_plank_original(p_num, x, v, physical_params, integration_params, save_norm=True, save_current=True)
+#     p_num, norm, curr = funker_plank(p_num, x, v, physical_params, integration_params, save_norm=True, save_current=True)
 #     x_new = quad_int(V**2*p_num, x,v) 
 #     print(f"iter {c}, x_new = {x_new}, x_old = {x_old}")
 #     c+=1
@@ -147,22 +140,18 @@ plt.rcParams['figure.figsize'] = (18/2.54, 10/2.54)
 
 # p_an = np.real(analytic(X,V, t0 + c*integration_params['dt']*integration_params['n_steps'] , x0, v0, physical_params)) 
 
-# print(f"At the same time: exact avg V= {quad_int(V*p_an, x,v):.5f}")
-# print(f"At the same time: exact avg X= {quad_int(X*p_an, x,v):.5f}")
-# print(f"At the same time: exact corr XV= {quad_int(X*V*p_an, x,v):.5}")
-# print(f"At the same time: exact avg V2= {quad_int(V**2*p_an, x,v):.5f}")
-# print(f"At the same time: exact avg X2= {quad_int(X**2*p_an, x,v):.5f}")
+# print(f"EXACT: X2={quad_int(X**2*p_an, x,v):.5f} V2={quad_int(V**2*p_an, x,v):.5f} XV={quad_int(X*V*p_an, x,v):.5f}")
+# print(f"NUM:   X2={quad_int(X**2*p_num, x,v):.5f} V2={quad_int(V**2*p_num, x,v):.5f} XV={quad_int(X*V*p_num, x,v):.5f}")
 
-# print(f"At the same time: num avg V= {quad_int(V*p_num, x,v):.5f}")
-# print(f"At the same time: num avg X= {quad_int(X*p_num, x,v):.5f}")
-# print(f"At the same time: num corr XV= {quad_int(X*V*p_num, x,v):.5}")
-# print(f"At the same time: num avg V2= {quad_int(V**2*p_num, x,v):.5f}")
-# print(f"At the same time: num avg X2= {quad_int(X**2*p_num, x,v):.5f}")
+# print(f"THEOR X2: sigma^2/gamma/2 = {physical_params['sigma_squared']/physical_params['gamma']/2}")
+# for quantity, name in zip([X**2, V**2, X*V], ["X2", "V2", "XV"]):
+#     num_est = quad_int(quantity*p_num, x,v)
+#     an_est = quad_int(quantity*p_an, x,v)
+#     err = num_est - an_est 
+#     print(f"ERROR {name} = {err:7.2} ({err/an_est*100:.1f} %)")
 
-# print(f"sigma^2/gamma/2 = {physical_params['sigma']**2/physical_params['gamma']/2}")
-
-# print(f"RMSE on p: {np.sqrt(np.mean((p_num - p_an)**2))}")
-# exit()
+# print(f"RMSE on p: {np.sqrt(np.mean((p_num - p_an)**2)):5.3e}")
+# # exit()
 # ####################TEST 1: 800 timesteps ########################
 # # #Environment setting
 # Lx, Lv = 4, 4

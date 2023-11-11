@@ -34,6 +34,26 @@ cdef tridiag(double [:] lower, double [:] diag, double [:] upper, double [:] d):
     
     return(np.array(x))
 
+cpdef get_tridiag(double [:] lower, double [:] diag, double [:] upper):
+    cdef int N = len(diag) 
+    cdef double [:,:] A = np.zeros((N,N))
+    cdef int i
+
+    for i in range(N):
+        A[i,i] = diag[i] 
+        if i >= 1:
+            A[i, i-1] = lower[i-1]
+        if i < N-1:
+            A[i, i+1] = upper[i]
+    return A
+
+def get_quad_mesh(integration_params):
+    cdef double Lx, Lv,dx,dv
+    Lx, Lv, dx, dv = map(integration_params.get, ["Lx", "Lv", "dx", "dv"])
+    cdef int N = int(Lx/dx), M = int(Lv/dv)
+    cdef double [:] x = np.arange(-(N//2), N//2)*dx
+    cdef double [:] v = np.arange(-(M//2), M//2)*dv
+    return np.meshgrid(np.array(x), np.array(v))
 
 cpdef cyclic_tridiag(double [:] lower, double [:] diag, double [:] upper, double c_up_right, double c_down_left, double [:] d):
     cdef int N = len(diag), i
@@ -122,17 +142,19 @@ cpdef complex [:,:] analytic(double [:, :] X, double [:,:] V, double time,
         
     return result
 
-cpdef quad_int(double [:,:] f, double [:] x, double [:] y):
-    cdef int N = f.shape[0], M = f.shape[1]
-    cdef float dx = x[1] - x[0], dy = y[1] - y[0]
+cpdef quad_int(double [:,:] f, integration_params):
+    cdef double dx,dv
+    dx,dv = map(integration_params.get, [ "dx", "dv"])
+
+    cdef unsigned int N = f.shape[0], M = f.shape[1]
     cdef double sum = 0.0
     cdef double [:] intermediate = np.zeros(N)
-    cdef int i = 0, j = 0
+    cdef unsigned int i = 0, j = 0
 
     for i in range(N):
         for j in range(M-1):
             intermediate[i] += f[i, j] + f[i, j+1]
-        intermediate[i] *= 0.5 * dy
+        intermediate[i] *= 0.5 * dv
     
     for i in range(N-1):
         sum += intermediate[i] + intermediate[i+1]

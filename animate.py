@@ -3,28 +3,29 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from mod4.utils import analytic
 from mod4.diffeq import  generic_3_step as funker_plank
-from mod4.utils import quad_int
+from mod4.utils import quad_int, get_quad_mesh
 
 FRAMES = 300
 
-# Environment setting
-Lx, Lv = 4, 4
-x, v = np.linspace(-Lx ,Lx, 80, endpoint=False), np.linspace(-Lv, Lv, 80, endpoint=False)
-X, V = np.meshgrid(x,v)
-t0 = .95
 
 # integration & physical parameters
-integration_params = dict(dt=np.pi/1000, n_steps=10, CN=np.array([False, False ,True]))
+integration_params = dict(  dt=3.14/1000, n_steps=10, 
+                            Lx=6, Lv=6, dx=0.1, dv=0.1, 
+                            ADI=False, 
+                            CN=np.array([True, False, False]))
 physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
+X, V = get_quad_mesh(integration_params)
 
 # Initial conditions
 x0, v0 = 1,0
+t0 = .95
 p0 = analytic(X,V, t0, x0, v0, physical_params)
+
 # p0 = ((X**2 + V**2) <1).astype(float)
 # p0 = np.ones((len(x), len(v)))
 
 p_num = np.real(p0)
-p_num /= quad_int(p_num ,x, v)
+p_num /= quad_int(p_num , integration_params)
 p_an = p0
 
 # What to plot
@@ -60,7 +61,7 @@ def update(i):
     physical_params['t0'] = i*integration_params['n_steps']*integration_params['dt']
 
     # Numeric
-    p_num , norm , curr = funker_plank(p_num, x, v, physical_params, integration_params, save_norm=True)
+    p_num , norm , curr = funker_plank(p_num, physical_params, integration_params, save_norm=True)
     p_num = np.array(p_num)
     p_num[p_num<0] = 0
     # p_num /= norm[-1]
@@ -69,11 +70,11 @@ def update(i):
     p_an = np.real(analytic(X,V, t , x0, v0, physical_params))
     # print(quad_int(np.real(p_an), x,v))
     # Moments
-    mu_num.append(quad_int(X*np.real(p_num), x, v))
-    mu_an.append(quad_int(X*np.real(p_an), x, v))
+    mu_num.append(quad_int(X*np.real(p_num), integration_params))
+    mu_an.append(quad_int(X*np.real(p_an), integration_params))
 
-    sigma_an.append(quad_int((X-mu_an[-1])**2*np.real(p_an), x,v))
-    sigma_num.append(quad_int((X-mu_num[-1])**2*np.real(p_num), x,v))
+    sigma_an.append(quad_int((X-mu_an[-1])**2*np.real(p_an), integration_params))
+    sigma_num.append(quad_int((X-mu_num[-1])**2*np.real(p_num), integration_params))
     print(np.sqrt(np.mean((np.array(p_num) - p_an)**2)))
     axes['mean'].clear()
     axes['mean'].plot(np.linspace(t0, t, len(mu_num)),mu_num, label="numeric")
