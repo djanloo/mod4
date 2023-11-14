@@ -2,18 +2,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from mod4.utils import analytic
-from mod4.diffeq import  generic_3_step as funker_plank
+from mod4.diffeq import  funker_plank_original as funker_plank
 from mod4.utils import quad_int, get_quad_mesh
 
 FRAMES = 300
 
 
 # integration & physical parameters
-integration_params = dict(  dt=3.14/1000, n_steps=10, 
-                            Lx=6, Lv=6, dx=0.1, dv=0.1, 
+integration_params = dict(  dt=3.14/1000, n_steps=100, 
+                            Lx=10, Lv=10, dx=0.1, dv=0.1, 
                             ADI=False,
-                            CN=np.array([False, False, True]))
-physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
+                            CN=np.array([False, False, False]))
+
+physical_params = dict(omega_squared=1.0, gamma=0.1, sigma_squared=0.001**2)
 X, V = get_quad_mesh(integration_params)
 
 # Initial conditions
@@ -23,7 +24,8 @@ p0 = analytic(X,V, t0, x0, v0, physical_params)
 
 # p0 = ((X**2 + V**2) <1).astype(float)
 # p0 = np.ones((len(x), len(v)))
-
+r = np.sqrt(X**2 + V**2)
+p0 = np.exp( - ((r-1)/0.5)**2)
 p_num = np.real(p0)
 p_num /= quad_int(p_num , integration_params)
 p_an = p0

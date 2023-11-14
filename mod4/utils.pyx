@@ -55,6 +55,18 @@ def get_quad_mesh(integration_params):
     cdef double [:] v = np.arange(-(M//2), M//2)*dv
     return np.meshgrid(np.array(x), np.array(v))
 
+def get_lin_mesh(integration_params):
+    cdef double L, d
+
+    L = integration_params.get('Lx', 0.0)
+    if  L == 0.0:
+        L = integration_params.get('Lv', 0.0)
+    d = integration_params.get('dx', 0.0)
+    if d == 0.0:
+        d = integration_params.get('dv', 0.0)
+    cdef int N = int(L/d)
+    return np.arange(-(N//2), N//2)*d
+
 cpdef cyclic_tridiag(double [:] lower, double [:] diag, double [:] upper, double c_up_right, double c_down_left, double [:] d):
     cdef int N = len(diag), i
     cdef double [:] u = np.zeros(N), v = np.zeros(N)
