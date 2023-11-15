@@ -23,6 +23,7 @@ hardcoreprofile:
 clear:
 	@echo "Cleaning all.."
 	@rm -f mod4/*.c
+	@rm -f mod4/*.cpp
 	@rm -f mod4/*.so
 	@rm -f mod4/*.html
 	@rm -R -f mod4/build

@@ -10,7 +10,7 @@ from rich import print
 
 
 def get_files_and_timestamp( extension):
-    return {file:os.path.getmtime(file) for file in os.listdir(".") if file.endswith(extension)}
+    return {file.split('.')[0]:os.path.getmtime(file) for file in os.listdir(".") if file.endswith(extension)}
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--profile', action='store_true')
@@ -53,59 +53,64 @@ if args.hardcore:
     cython_compiler_directives['cdivision'] = True
     cython_compiler_directives['wraparound'] = False
 
-## Files and version conparisons
+
+print(f"[blue]COMPILER DIRECTIVES[/blue]: {cython_compiler_directives}")
+print(f"[blue]EXT_KWARGS[/blue]: {extension_kwargs}")
+
+## Files and version conmparisons
 
 cython_files = get_files_and_timestamp(".pyx")
-c_files = get_files_and_timestamp*("")
+c_files = get_files_and_timestamp(".c")
+c_files.update(get_files_and_timestamp(".cpp"))
 
-print(f"Found {len(cython_files)} cython files ({cython_files.keys()})")
+print(f"Found cython files {list(cython_files.keys())}")
+print(f"Found C/C++ files {list(c_files.keys())}")
+
+edited_files = []
+for file in list(set(c_files.keys()) | set(cython_files.keys())):
+    try:
+        cython_files[file]
+    except KeyError:
+        print(f"[red]C file {file:30} has no .pyx parent[/red]")
+        continue
+    
+    try:
+        c_files[file]
+    except KeyError:
+        print(f"C file {file:30} does not exist. Considered {file}.pyx as edited.")
+        edited_files.append(file + ".pyx")
+    else:
+        if cython_files[file] >= c_files[file]:
+            print(rf"{file:30} updated: [green]YES[/green]")
+            edited_files.append(file+".pyx")
+        else:
+            print(rf"{file:30} updated: [red]NO[/red]")
+
 ext_modules = [
     Extension(
         cfile.strip(".pyx"),
         [cfile],
         **extension_kwargs
     )
-    for cfile in cython_files.keys()
+    for cfile in edited_files
 ]
-# Sets language level
-print(f"[blue]COMPILER DIRECTIVES[/blue]: {cython_compiler_directives}")
-print(f"[blue]EXT_KWARGS[/blue]: {extension_kwargs}")
+
+if not ext_modules:
+    print(f"[green]Everything up-to-date[/green]")
+    exit()
+
 print(f"[blue]Cythonizing..[/blue]")
 ext_modules = cythonize(ext_modules, 
                         compiler_directives=cython_compiler_directives,
                         force=False,
                         annotate=False)
-print(ext_modules)
-# Filters only the modified extensions
-modified_extensions = []
-for extension in ext_modules:
-    c_file = extension.sources[0]  # Assumes only one file for each extension
-    print(f"Found C/C++ file {c_file}")
-    if c_file.endswith(".cpp"):
-        cython_file = c_file.replace(".cpp", ".pyx")
-    if c_file.endswith(".c"):
-        cython_file = c_file.replace(".c", ".pyx")
 
-    print(f"Found cython file {cython_file}")
-
-    print(f"Cython file last edit: {os.path.getmtime(cython_file)}")
-    print(f"C/C++  file last edit: {os.path.getmtime(c_file)}")
-
-    # Checks edit time
-    if os.path.exists(cython_file) and os.path.getmtime(cython_file) >= os.path.getmtime(c_file):
-        print(f"Compiling [green]{extension.sources[0].split('.')[0]}[/green]")
-        modified_extensions.append(extension)
-
-if modified_extensions == []:
-    print("[green]Everything up-to-date. Nothing to do here[/green]")
-    exit()
-
-print(f"[blue]Now compiling modified extensions:[/blue]{[e.sources[0].split('.')[0] for e in modified_extensions]}")
+print(f"[blue]Now compiling modified extensions:[/blue]{[e.sources[0].split('.')[0] for e in ext_modules]}")
 setup(
     name=packageDir,
     cmdclass={"build_ext": build_ext},
     include_dirs=includedDir,
-    ext_modules=modified_extensions,
+    ext_modules=ext_modules,
     script_args=["build_ext"],
     options={"build_ext": {"inplace": True, "force": True}},
     )
