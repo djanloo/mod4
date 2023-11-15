@@ -46,21 +46,22 @@ cpdef tsai1d(double [:] p0, double x, dict physical_params, dict integration_par
   for time_index in range(n_steps):
     time = t0 + time_index*dt
     s = 0.5*dt/dv**2*sigma_squared(x, time, physical_params)
-    b = p.copy()
+
     for j in range(M):
         a_now_right  = theta*a(x, v[j] + dv,  time,       physical_params)
         a_now_left   = theta*a(x, v[j] - dv,  time,       physical_params)
+        
         a_next_right = theta*a(x, v[j] + dv,  time+dt,    physical_params)
         a_next_left  = theta*a(x, v[j] - dv,  time+dt,    physical_params)
-        a_next_here  = theta*a(x, v[j],       time,       physical_params)
+        a_next_here  = theta*a(x, v[j] ,      time+dt,       physical_params)
 
         lower[j] = 1 - 1.5*a_next_here - 3*s 
         diagonal[j] = 4 + 1.5*(a_next_left - a_next_right)  + 6*s
         upper[j] = 1 + 1.5*a_next_right - 3*s
       
         if j != 0 and j != M-1:
-            b[j] +=   (1 - 1.5*a_now_right + 3*s)* p[j+1] 
-            b[j] +=   (4 - 1.5*(a_now_left - a_now_right))* p[j]
+            b[j] =   (1 - 1.5*a_now_right + 3*s)* p[j+1] 
+            b[j] +=   (4 - 1.5*(a_now_left - a_now_right) - 6*s)* p[j]
             b[j] +=   ( 1 + 1.5*a_now_left + 3*s)* p[j-1]
 
     p = tridiag(lower, diagonal, upper, b)
