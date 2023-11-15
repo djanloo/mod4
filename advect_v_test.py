@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from mod4.diffeq import advect_v, diffuse_v,  advect_diffuse_IMPL, advect_LW as adlw, advectLW_diffuseCN, advect_diffuse_LW
+from mod4.diffeq import advect_IMPL, diffuse_CN,  advect_diffuse_IMPL, advect_LW as adlw, advectLW_diffuseCN, advect_diffuse_LW
 from mod4.utils import get_lin_mesh
 
 from matplotlib.animation import FuncAnimation

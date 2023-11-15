@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from mod4.utils import analytic
-from mod4.diffeq import  funker_plank_original as funker_plank
+from mod4.implicit import  generic_3_step as funker_plank
 from mod4.utils import quad_int, get_quad_mesh
 
 FRAMES = 300
@@ -12,9 +12,9 @@ FRAMES = 300
 integration_params = dict(  dt=3.14/1000, n_steps=100, 
                             Lx=10, Lv=10, dx=0.1, dv=0.1, 
                             ADI=False,
-                            CN=np.array([False, False, False]))
+                            CN=np.array([True, True, True]))
 
-physical_params = dict(omega_squared=1.0, gamma=0.1, sigma_squared=0.001**2)
+physical_params = dict(omega_squared=1.0, gamma=0.2, sigma_squared=0.001**2)
 X, V = get_quad_mesh(integration_params)
 
 # Initial conditions
@@ -32,7 +32,7 @@ p_an = p0
 
 # What to plot
 preproc_func = lambda x: np.abs(x)
-levels = np.linspace(0,1.5, 30)
+levels = np.linspace(0,0.3, 30)
 
 mu_num = []
 mu_an = []
