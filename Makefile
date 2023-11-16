@@ -1,7 +1,6 @@
 .PHONY: generate profile clear
 
 generate:
-	# @make clear
 	@python3 -m mod4.setup
 
 profile:

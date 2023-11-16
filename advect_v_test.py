@@ -7,9 +7,9 @@ from mod4.utils import get_lin_mesh
 from matplotlib.animation import FuncAnimation
 from scipy.special import erf
 
-i_pars = dict(Lv=8, dv=0.1, dt=1e-3, n_steps=20)
+i_pars = dict(Lv=8, dv=0.1, dt=3e-3, n_steps=2)
 phy_pars = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8*0.8)
-x = 0.1
+x = 4
 v = np.array(get_lin_mesh(i_pars))
 p = np.exp(-((v))**2)
 print(p)
@@ -27,6 +27,8 @@ plt.plot(v,steady, color="k", ls=":")
 def update(i):
     global v, p
     p = tsai_FV(p, x, phy_pars, i_pars)
+    # p = np.array(p)
+    # p /= np.sum(p)*i_pars['dv']
     line.set_data(v, np.array(p))
     print(np.sqrt(np.mean((np.array(p)-steady)**2)))
     return line,

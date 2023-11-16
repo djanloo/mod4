@@ -30,6 +30,8 @@ extension_kwargs = dict(
         libraries=["m"],                # Unix-like specific link to C math libraries
         extra_compile_args=["-fopenmp", "-O3"],# Links OpenMP for parallel computing
         extra_link_args=["-fopenmp"],
+        define_macros= [('NPY_NO_DEPRECATED_API','NPY_1_7_API_VERSION')] #Silences npy deprecated warn
+
         )
 
 cython_compiler_directives = get_directive_defaults()
@@ -43,7 +45,8 @@ if args.profile:
     cython_compiler_directives['linetrace'] = True
     cython_compiler_directives['binding'] = True
     # Activates profiling
-    extension_kwargs["define_macros"] = [('CYTHON_TRACE', '1'), ('CYTHON_TRACE_NOGIL', '1')]
+    extension_kwargs["define_macros"].append(('CYTHON_TRACE', '1'))
+    extension_kwargs['define_macros'].append(('CYTHON_TRACE_NOGIL', '1'))
 
 # Globally boost speed by disabling checks
 # see https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html#compiler-directives
@@ -54,8 +57,8 @@ if args.hardcore:
     cython_compiler_directives['wraparound'] = False
 
 
-print(f"[blue]COMPILER DIRECTIVES[/blue]: {cython_compiler_directives}")
-print(f"[blue]EXT_KWARGS[/blue]: {extension_kwargs}")
+# print(f"[blue]COMPILER DIRECTIVES[/blue]: {cython_compiler_directives}")
+# print(f"[blue]EXT_KWARGS[/blue]: {extension_kwargs}")
 
 ## Files and version conmparisons
 
@@ -63,11 +66,11 @@ cython_files = get_files_and_timestamp(".pyx")
 c_files = get_files_and_timestamp(".c")
 c_files.update(get_files_and_timestamp(".cpp"))
 
-print(f"Found cython files {list(cython_files.keys())}")
-print(f"Found C/C++ files {list(c_files.keys())}")
-
+# print(f"Found cython files {list(cython_files.keys())}")
+# print(f"Found C/C++ files {list(c_files.keys())}")
+print(f"File {'-'*60}")
 edited_files = []
-for file in list(set(c_files.keys()) | set(cython_files.keys())):
+for file in sorted(list(set(c_files.keys()) | set(cython_files.keys()))):
     try:
         cython_files[file]
     except KeyError:
@@ -77,7 +80,7 @@ for file in list(set(c_files.keys()) | set(cython_files.keys())):
     try:
         c_files[file]
     except KeyError:
-        print(f"C file {file:30} does not exist. Considered {file}.pyx as edited.")
+        print(f"C file {file:20} does not exist. Considered as edited.")
         edited_files.append(file + ".pyx")
     else:
         if cython_files[file] >= c_files[file]:
