@@ -94,7 +94,7 @@ cpdef tsai_FV(double [:] p0, double x, dict physical_params, dict integration_pa
         P[j] = 0.5*(p[j] + p[j+1])
 
     cdef double theta = dt/dv
-    cdef double eta = 0.5* dt/dv**2
+    cdef double eta = 0.5 * dt/dv**2
 
     # Declarations of the diagonals
     cdef double [:] lower, diagonal, upper, b
@@ -115,7 +115,7 @@ cpdef tsai_FV(double [:] p0, double x, dict physical_params, dict integration_pa
 
     for time_index in range(n_steps):
         time = t0 + time_index*dt
-        
+
         ## Updates grid points
         for j in range(M):
 
@@ -143,15 +143,6 @@ cpdef tsai_FV(double [:] p0, double x, dict physical_params, dict integration_pa
                     denom = 1 + 3*s[1, m+1] + 3*s[1, m]
                     pasts[m,k]   /= denom 
                     futures[m,k] /= denom
-
-            print(f"j = {j}")
-            print(f"denom = {denom}")
-            print(f"eta = {eta}")
-            print(f"theta = {theta}")
-            print(f"s = {np.array(s)}")
-            print(f"g = {np.array(g)}")
-            print(f"futures = {np.array(futures)}")
-            print(f"pasts = {np.array(pasts)}")
 
             # special case: remember lower definition
             # first coefficient should be A_minus = 1 - 3*futures[0,0]
@@ -181,37 +172,21 @@ cpdef tsai_FV(double [:] p0, double x, dict physical_params, dict integration_pa
         p_new[0] = 0.0
         p_new[M-1] = 0.0
 
-        # # Update of averages
-        # for j in range(M-1):
-        #     # Coefficients of equation 8
-        #     for k in range(3):
-        #         # k = (left, here, right)
-        #         for m in range(2):
-        #             # m = (now, next)
-        #             s[m,k] = eta*sigma_squared_full(x, v[j] + (k-1)*dv, time + m*dt, physical_params)
-        #             g[m,k] = theta*a(x, v[j] +(k-1)*dv, time + m*dt, physical_params)
-
-        #     for k in range(3):
-        #         # K swithces coefficient
-        #         # m is i-1 or i
-        #         for m in range(2):
-        #             if k == 0:
-        #                 futures[m,k] = 0.5*(g[1, m] + 2*s[1, m+1] + 4*s[1, m])
-        #                 pasts[m, k]  = 0.5*(g[0, m] + 2*s[0, m+1] + 4*s[0, m])
-        #             if k==1:
-        #                 pasts[m,k] = 1 - 3*s[0, m+1] - 3*s[0, m]
-        #             if k == 2:
-        #                 futures[m,k] = -0.5*(g[1, m+1] - 4*s[1, m+1] - 2*s[1, m])
-        #                 pasts[m,k]   = 0.5*(-g[0, m+1] + 4*s[0, m+1] + 2*s[0, m])
-
-        #             denom = 1 + 3*s[1, m+1] + 3*s[1, m]
-        #             pasts[m,k]   /= denom 
-        #             futures[m,k] /= denom
-
-        #     P[j] = futures[1,0]*p_new[j] + futures[1,2]*p_new[j+1] + pasts[1,0]*p_new[j] + pasts[1,2]*p_new[j+1]            
-        #     P[j] += pasts[1,1]*P[j]
+        # Update of averages
         for j in range(M-1):
-            P[j] = 0.5*(p_new[j] + p_new[j+1])
-        p = p_new.copy()
+            # Coefficients of equation 8
+            for k in range(3):
+                # k = (left, here, right)
+                for m in range(2):
+                    # m = (now, next)
+                    s[m,k] = eta*sigma_squared_full(x, v[j] + (k-1)*dv, time + m*dt, physical_params)
+                    g[m,k] = theta*a(x, v[j] +(k-1)*dv, time + m*dt, physical_params)
 
+            P[j] =  (1 - 6*s[0,2] - 6*s[0,1])*P[j] +\
+                    (-g[1,2] + 4*s[1,2] + 2*s[1,1]) *p_new[j+1]  + (-g[0,2] + 4*s[0,2] + 2*s[0,1])  *p[j+1] +\
+                    (g[1,1] + 2*s[1,2] + 4*s[1,1])  *p_new[j]    + (g[0,1] + 2*s[0,2] + 4*s[0,1])   *p[j]
+
+            P[j] /= 1 + 6*s[1,2] + 6*s[1, 1]
+
+        p = p_new.copy()
     return p

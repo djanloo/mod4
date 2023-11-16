@@ -7,9 +7,9 @@ from mod4.utils import get_lin_mesh
 from matplotlib.animation import FuncAnimation
 from scipy.special import erf
 
-i_pars = dict(Lv=8, dv=0.1, dt=3e-3, n_steps=2)
+i_pars = dict(Lv=8, dv=0.1, dt=2e-3, n_steps=10)
 phy_pars = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8*0.8)
-x = 4
+x = 0
 v = np.array(get_lin_mesh(i_pars))
 p = np.exp(-((v))**2)
 print(p)
