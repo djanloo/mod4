@@ -93,8 +93,8 @@ cpdef tsai_FV(double [:] p0, double x, dict physical_params, dict integration_pa
     for j in range(M-1):
         P[j] = 0.5*(p[j] + p[j+1])
 
-    cdef double theta = 2*dt/dv
-    cdef double eta = dt/dv**2
+    cdef double theta = dt/dv
+    cdef double eta = 0.5* dt/dv**2
 
     # Declarations of the diagonals
     cdef double [:] lower, diagonal, upper, b
