@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 # from mod4.diffeq import advect_IMPL, diffuse_CN,  advect_diffuse_IMPL, advect_LW as adlw, advectLW_diffuseCN, advect_diffuse_LW
-from mod4.tsai import tsai1d
+from mod4.tsai import tsai1d, tsai_FV
 from mod4.utils import get_lin_mesh
 
 from matplotlib.animation import FuncAnimation
@@ -26,7 +26,7 @@ plt.plot(v,steady, color="k", ls=":")
 
 def update(i):
     global v, p
-    p = tsai1d(p, x, phy_pars, i_pars)
+    p = tsai_FV(p, x, phy_pars, i_pars)
     line.set_data(v, np.array(p))
     print(np.sqrt(np.mean((np.array(p)-steady)**2)))
     return line,
