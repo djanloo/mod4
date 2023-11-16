@@ -123,7 +123,8 @@ def generic_3_step( double [:,:] p0,
 
         if CN_ized_steps[0]:
           if j > 0 and j < M-1:
-
+            a_plus  =  theta * a(x[i],v[j] + 0.5*dv, time+dt, physical_params)
+            a_minus =  theta * a(x[i],v[j] - 0.5*dv, time+dt, physical_params)
             # Drift
             b_1[j] += - a_plus*p[j+1, i]
             b_1[j] += (a_minus - a_plus)*p[j, i]
@@ -433,6 +434,10 @@ cpdef advect_diffuse_IMPL(double [:] p0, double x, dict physical_params, dict in
           b[j] +=   (   s)* p[j+1] 
           b[j] +=   (-2*s)* p[j]
           b[j] +=   (   s)* p[j-1]
+        else:
+            b[j] = 0
 
     p = tridiag(lower, diagonal, upper, b)
+    p[0] = 0
+    p[M-1] = 0
   return p

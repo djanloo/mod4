@@ -9,12 +9,13 @@ FRAMES = 300
 
 
 # integration & physical parameters
-integration_params = dict(  dt=3.14/1000, n_steps=100, 
+integration_params = dict(  dt=1/1000, n_steps=300, 
                             Lx=10, Lv=10, dx=0.1, dv=0.1, 
                             ADI=False,
+                            diffCN=True,
                             CN=np.array([True, True, True]))
 
-physical_params = dict(omega_squared=1.0, gamma=0.2, sigma_squared=0.001**2)
+physical_params = dict(omega_squared=1.0, gamma=0.05, sigma_squared=0.001**2)
 X, V = get_quad_mesh(integration_params)
 
 # Initial conditions

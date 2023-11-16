@@ -9,7 +9,7 @@ from scipy.special import erf
 
 i_pars = dict(Lv=8, dv=0.1, dt=1e-3, n_steps=20)
 phy_pars = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8*0.8)
-x = 0.0
+x = 0.1
 v = np.array(get_lin_mesh(i_pars))
 p = np.exp(-((v))**2)
 print(p)
