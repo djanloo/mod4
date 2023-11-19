@@ -10,7 +10,7 @@ from scipy.special import erf
 
 i_pars = dict(Lv=10, dv=0.1, dt=3e-3, n_steps=20)
 phy_pars = dict(omega_squared=1.0, gamma=1.1, sigma_squared=0.8**2)
-x = 0.5
+x = 0.0
 v = np.array(get_lin_mesh(i_pars))
 p = np.exp(-((v))**2)#*np.abs(np.sin(50*v))
 # p = np.random.normal(0,1, size=len(p))
@@ -28,7 +28,7 @@ steady /= np.trapz(steady, v)
 plt.plot(v,steady, color="k", ls=":")
 # plt.ylim(-5e-3,5e-3)
 
-evolve = tsai_FV
+evolve = tsai_2
 # evolve = advect_diffuse_IMPL
 
 def update(i):
