@@ -2,7 +2,7 @@ import numpy as np
 from scipy.linalg import expm 
 
 cdef double [:] tridiag(double [:] lower, double [:] diag, double [:] upper, double [:] d):
-    """Solve the tridiagonal system by Thomas Algorithm"""
+    """Solves the tridiagonal system by Thomas Algorithm"""
     cdef int N = len(diag)
     cdef int i
     cdef double [:] x = np.zeros(N, dtype="float64")
