@@ -345,7 +345,7 @@ def funker_plank_original( double [:,:] p0,
   return p, norm, currents
 
 
-cpdef advect_IMPL(double [:] p0, double x, dict physical_params, dict integration_params):
+cpdef advect_IMPL_v(double [:] p0, double x, dict physical_params, dict integration_params):
   ## Time
   cdef double dt   = integration_params['dt']
   cdef unsigned int n_steps = integration_params['n_steps']
@@ -387,7 +387,7 @@ cpdef advect_IMPL(double [:] p0, double x, dict physical_params, dict integratio
     p = tridiag(lower, diagonal, upper, b)
   return p
 
-cpdef advect_diffuse_IMPL(double [:] p0, double x, dict physical_params, dict integration_params):
+cpdef IMPL1D_v(double [:] p0, double x, dict physical_params, dict integration_params):
   ## Time
   cdef double dt   = integration_params['dt']
   cdef unsigned int n_steps = integration_params['n_steps']
@@ -397,7 +397,7 @@ cpdef advect_diffuse_IMPL(double [:] p0, double x, dict physical_params, dict in
   cdef double Lv,dv
   Lv,dv = map(integration_params.get, ["Lv", "dv"])
 
-  cdef unsigned int  M = int(Lv/dv)
+  cdef unsigned int  M = int(Lv/dv) + 1
   cdef double [:] v = np.arange(-int(M)//2, int(M)//2)*dv
 
   cdef unsigned int time_index = 0, j = 0
@@ -406,10 +406,8 @@ cpdef advect_diffuse_IMPL(double [:] p0, double x, dict physical_params, dict in
   
   cdef double [:] p = p0.copy()
   cdef double theta = 0.5 * dt/dv
-  cdef double eta   = 0.5 * dt/dv**2
-  
-  if diffCN:
-    eta = 0.5*eta
+  cdef double eta   = 0.25 * dt/dv**2
+
 
   # Declarations of the diagonals
   cdef double [:] lower, diagonal, upper, b
@@ -429,15 +427,55 @@ cpdef advect_diffuse_IMPL(double [:] p0, double x, dict physical_params, dict in
       upper[j]    = - s + a_plus
       lower[j]    = - s - a_plus
       
-      if diffCN:
-        if j != 0 and j != M-1:
-          b[j] +=   (   s)* p[j+1] 
-          b[j] +=   (-2*s)* p[j]
-          b[j] +=   (   s)* p[j-1]
-        else:
-            b[j] = 0
+      
+      if j != 0 and j != M-1:
+        b[j] +=   (   s)* p[j+1] 
+        b[j] +=   (-2*s)* p[j]
+        b[j] +=   (   s)* p[j-1]
+      else:
+          b[j] = 0
 
     p = tridiag(lower, diagonal, upper, b)
     p[0] = 0
     p[M-1] = 0
+  return p
+
+
+cpdef IMPL1D_x(double [:] p0, double v, dict physical_params, dict integration_params):
+  ## Time
+  cdef double dt   = integration_params['dt']
+  cdef unsigned int n_steps = integration_params['n_steps']
+  cdef double t0    = physical_params.get('t0', 0.0)
+
+  ## Space
+  cdef double Lx,dx
+  Lx,dx = map(integration_params.get, ["Lx", "dx"])
+
+  cdef unsigned int  N = int(Lx/dx) + 1
+  cdef unsigned int time_index = 0, j = 0
+
+  cdef double [:] p = p0.copy()
+  cdef double theta = 0.5*dt/dx
+
+
+  # Declarations of the diagonals
+  cdef double [:] lower, diagonal, upper, b
+  lower, diagonal, upper, b = np.ones(N), np.ones(N), np.ones(N), np.ones(N)
+
+  for time_index in range(n_steps):
+    time = t0 + time_index*dt
+    b = p.copy()
+    for j in range(N):
+
+      # Note tha theta is absorbed in working variable
+      a  =  theta * v
+
+      diagonal[j] =  1.0
+      upper[j]    =  a
+      lower[j]    =  -a
+      
+
+    p = tridiag(lower, diagonal, upper, b)
+    p[0] = 0
+    p[N-1] = 0
   return p

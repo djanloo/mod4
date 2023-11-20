@@ -49,7 +49,13 @@ def get_lin_mesh(integration_params):
     if d == 0.0:
         d = integration_params.get('dv', 0.0)
     cdef int N = int(L/d)
-    return np.arange(-(N//2), N//2)*d
+    cdef int i = 0
+
+    mesh = np.zeros(N+1)
+    for i in range(N+1):
+        mesh[i] = -L/2 + i*d
+    print(mesh)
+    return mesh
 
 cpdef cyclic_tridiag(double [:] lower, double [:] diag, double [:] upper, double c_up_right, double c_down_left, double [:] d):
     cdef int N = len(diag), i
