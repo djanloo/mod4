@@ -89,6 +89,22 @@ for file in sorted(list(set(c_files.keys()) | set(cython_files.keys()))):
         else:
             print(rf"{file:30} updated: [red]NO[/red]")
 
+################### GENERATION OF PXD FILES ###############
+for file in cython_files.keys():
+    declarations = []
+    with open(f"{file}.pyx", "r") as codefile:
+        for line in codefile:
+            line_clean = line.strip()
+            if line_clean.startswith("#"):
+                continue
+            if line_clean.startswith('cdef') or line_clean.startswith("cpdef"):
+                if line_clean.endswith(":"):
+                    declarations.append(line_clean[:-1])
+    with open(f"{file}.pxd", "w") as declaration_file:
+        for dec in declarations:
+            declaration_file.write(dec + "\n")
+###########################################################
+
 ext_modules = [
     Extension(
         cfile.strip(".pyx"),
@@ -105,6 +121,7 @@ if not ext_modules:
 print(f"[blue]Cythonizing..[/blue]")
 ext_modules = cythonize(ext_modules, 
                         compiler_directives=cython_compiler_directives,
+                        include_path=["."],
                         force=False,
                         annotate=False)
 
