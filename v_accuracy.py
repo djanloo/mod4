@@ -1,13 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 # from mod4.diffeq import advect_LW, diffuse_CN,  advect_diffuse_IMPL, advect_diffuse_LW, advectLW_diffuseCN
-from mod4.tsai import tsai_FV  as evolve
+from mod4.tsai import tsai_mistery
 from mod4.implicit import advect_diffuse_IMPL 
 from mod4.utils import get_lin_mesh
 
 import seaborn as sns; sns.set()
 from matplotlib.animation import FuncAnimation
 from scipy.special import erf
+
+
 
 i_pars = dict(Lv=8, dv=0.1, dt=3e-3, n_steps=1200)
 phy_pars = dict(omega_squared=1.0, gamma=1.1, sigma_squared=0.8**2)

@@ -4,22 +4,23 @@ from matplotlib.animation import FuncAnimation
 from mod4.utils import analytic
 from mod4.implicit import  generic_3_step as funker_plank
 from mod4.utils import quad_int, get_quad_mesh
+from mod4.tsai import tsai_2D
 
 FRAMES = 300
 
 
 # integration & physical parameters
-integration_params = dict(  dt=1/1000, n_steps=300, 
-                            Lx=10, Lv=10, dx=0.1, dv=0.1, 
+integration_params = dict(  dt=1e-4, n_steps=500, 
+                            Lx=8, Lv=8, dx=0.1, dv=0.1, 
                             ADI=False,
                             diffCN=True,
                             CN=np.array([True, True, True]))
 
-physical_params = dict(omega_squared=1.0, gamma=0.05, sigma_squared=0.001**2)
+physical_params = dict(omega_squared=1.0, gamma=0.01, sigma_squared=0.01**2)
 X, V = get_quad_mesh(integration_params)
 
 # Initial conditions
-x0, v0 = 1,0
+x0, v0 = 0,0
 t0 = .95
 p0 = analytic(X,V, t0, x0, v0, physical_params)
 
@@ -27,13 +28,15 @@ p0 = analytic(X,V, t0, x0, v0, physical_params)
 # p0 = np.ones((len(x), len(v)))
 r = np.sqrt(X**2 + V**2)
 p0 = np.exp( - ((r-1)/0.5)**2)
+# p0 = np.exp(-((X-1)**2 + V**2)/0.5**2)
+
 p_num = np.real(p0)
 p_num /= quad_int(p_num , integration_params)
 p_an = p0
 
 # What to plot
 preproc_func = lambda x: np.abs(x)
-levels = np.linspace(0,0.3, 30)
+levels = np.linspace(0,1, 30)
 
 mu_num = []
 mu_an = []
@@ -53,10 +56,30 @@ sigma_an_plot = axes['var'].plot([0,1],[0,0], label="analytic")
 sigma_num_plot = axes['var'].plot([0,1],[0,0], label="numeric")
 axes['covar'].axis('off')
 
+## For tsai###
+P = np.zeros((p_num.shape[0], p_num.shape[1]))
+for i in range(P.shape[0]):
+    for j in range(P.shape[1]):
+        P[i,j] = p_num[i,j]
+        c=1
+        if i != P.shape[0]-1:
+            P[i,j] += p_num[i+1, j]
+            c+=1
+        if j != P.shape[1] - 1:
+            P[i,j] += p_num[i, j+1]
+            c+=1
+        if i!=P.shape[0]-1 and j != P.shape[1]-1:
+            P[i,j] += p_num[i+1, j+1]
+            c+=1
+        P[i,j] /= c
+
+# plt.contourf(P)
+# plt.show()
+
 def update(i):
     if i == 0:
         return
-    global p_num, p_an    
+    global p_num, p_an , P 
 
     t = t0 + i*integration_params['n_steps']*integration_params['dt']
     # Sets the simulation to start at the last time 
@@ -64,9 +87,11 @@ def update(i):
     physical_params['t0'] = i*integration_params['n_steps']*integration_params['dt']
 
     # Numeric
-    p_num , norm , curr = funker_plank(p_num, physical_params, integration_params, save_norm=True)
+    # p_num , norm , curr = funker_plank(p_num, physical_params, integration_params, save_norm=True)
+    p_num, P = tsai_2D(p_num, P, physical_params, integration_params)
     p_num = np.array(p_num)
     p_num[p_num<0] = 0
+    print("norm", quad_int(p_num, integration_params))
     # p_num /= norm[-1]
 
     # Analytic
