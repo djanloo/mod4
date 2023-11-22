@@ -12,7 +12,7 @@ from time import perf_counter
 from libc.math cimport sin
 
 cimport utils
-from utils import quad_int, get_tridiag
+from utils import quad_int, get_tridiag, get_lin_mesh
 from utils cimport tridiag
 
 cimport diffeq
@@ -398,7 +398,7 @@ cpdef IMPL1D_v(double [:] p0, double x, dict physical_params, dict integration_p
   Lv,dv = map(integration_params.get, ["Lv", "dv"])
 
   cdef unsigned int  M = int(Lv/dv) + 1
-  cdef double [:] v = np.arange(-int(M)//2, int(M)//2)*dv
+  cdef double [:] v = get_lin_mesh(integration_params)
 
   cdef unsigned int time_index = 0, j = 0
   cdef bool diffCN
@@ -457,13 +457,13 @@ cpdef IMPL1D_x(double [:] p0, double v, dict physical_params, dict integration_p
   cdef double [:] p = p0.copy()
   cdef double theta = 0.5*dt/dx
 
-
   # Declarations of the diagonals
   cdef double [:] lower, diagonal, upper, b
-  lower, diagonal, upper, b = np.ones(N), np.ones(N), np.ones(N), np.ones(N)
+  lower, diagonal, upper, b = np.zeros(N), np.zeros(N), np.zeros(N), np.zeros(N)
 
+  cdef double right_border
+  
   for time_index in range(n_steps):
-    time = t0 + time_index*dt
     b = p.copy()
     for j in range(N):
 
@@ -471,11 +471,23 @@ cpdef IMPL1D_x(double [:] p0, double v, dict physical_params, dict integration_p
       a  =  theta * v
 
       diagonal[j] =  1.0
-      upper[j]    =  a
-      lower[j]    =  -a
-      
+      upper[j]    =  a if p[j] > 0 else -a
+      lower[j]    =  -a if p[j] > 0 else a
+    
+
+     ## BCs left
+    # lower[0] = 0.0
+    # upper[0] = 0.0
+    # diagonal[0] = 1.0
+    # b[0] = 0.0
+
+    # BCs right
+    lower[N-2] = 0
+    # upper[N-2] = 0
+    diagonal[N-1] =  10.0
+    b[N-1] = 0
 
     p = tridiag(lower, diagonal, upper, b)
-    p[0] = 0
-    p[N-1] = 0
+    # print(np.array(get_tridiag(lower, diagonal, upper)))
+    # exit()
   return p
