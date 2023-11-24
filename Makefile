@@ -4,19 +4,19 @@ generate:
 	@python3 -m mod4.setup
 
 profile:
-	@make clear
+	# @make clear
 	@python3 -m mod4.setup --profile
 
 notrace:
-	@make clear
+	# @make clear
 	@python3 -m mod4.setup --notrace
 
 hardcore:
-	make clear
+	# make clear
 	@python3 -m mod4.setup --hardcore
 
 hardcoreprofile:
-	make clear
+	# make clear
 	@python3 -m mod4.setup --hardcore --profile
 
 clear:

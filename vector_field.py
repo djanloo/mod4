@@ -6,7 +6,7 @@ x = np.linspace(-3, 3, 15)
 y = np.linspace(-3, 3, 15)
 X, Y = np.meshgrid(x, y)
 U =  Y  # Componente x del vettore
-V = -X - 0.5*Y*(X**2 - 1)  # Componente y del vettore
+V = -X - 0.01*Y*(X**2 - 1)  # Componente y del vettore
 
 # Crea la figura e gli assi
 fig, ax = plt.subplots()

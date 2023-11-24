@@ -2,62 +2,68 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from mod4.utils import analytic
-from mod4.implicit import  generic_3_step as funker_plank
-from mod4.utils import quad_int, get_quad_mesh
+from mod4.implicit import  generic_3_step
+from mod4.utils import quad_int, get_quad_mesh, get_lin_mesh
 from mod4.tsai import tsai_2D
 
-FRAMES = 300
+from mod4 import setup
+FRAMES = 200
 
 
 # integration & physical parameters
-integration_params = dict(  dt=1e-4, n_steps=500, 
+integration_params = dict(  dt=1e-3, n_steps=30, 
                             Lx=8, Lv=8, dx=0.1, dv=0.1, 
                             ADI=False,
                             diffCN=True,
                             CN=np.array([True, True, True]))
 
-physical_params = dict(omega_squared=1.0, gamma=0.01, sigma_squared=0.01**2)
+physical_params = dict(omega_squared=1.0, gamma=1.1, sigma_squared=0.8**2)
 X, V = get_quad_mesh(integration_params)
 
 # Initial conditions
 x0, v0 = 0,0
-t0 = .95
+t0 = .8
 p0 = analytic(X,V, t0, x0, v0, physical_params)
 
 # p0 = ((X**2 + V**2) <1).astype(float)
 # p0 = np.ones((len(x), len(v)))
-r = np.sqrt(X**2 + V**2)
-p0 = np.exp( - ((r-1)/0.5)**2)
-# p0 = np.exp(-((X-1)**2 + V**2)/0.5**2)
+# r = np.sqrt(X**2 + V**2)
+# p0 = np.exp( - ((r-0.5)/0.2)**2)
+p0 = np.exp(-((X-1)**2 + V**2)/0.5**2)
 
 p_num = np.real(p0)
 p_num /= quad_int(p_num , integration_params)
 p_an = p0
 
 # What to plot
-preproc_func = lambda x: np.abs(x)
-levels = np.linspace(0,1, 30)
-
-mu_num = []
-mu_an = []
-sigma_an = []
-sigma_num = []
+preproc_func = lambda x: np.log(np.abs(x))
+levels = np.linspace(-40,1, 30)
 
 # Definition of the plots
-fig, axes = plt.subplot_mosaic([["analytic", 'cbar', 'numeric'], ['mean', 'covar', 'var']], width_ratios=[1, 0.1, 1], constrained_layout=True)
+fig, axes = plt.subplot_mosaic([["imag"], ["sect"]], height_ratios=[1, 0.2], constrained_layout=True)
 
-n_plot = axes['numeric'].contourf(X, V, preproc_func(p_num), levels=levels, cmap='rainbow')
-a_plot = axes['analytic'].contourf(X, V, preproc_func(p_an), levels=levels, cmap='rainbow')
-cbar = fig.colorbar(a_plot, cax=axes['cbar'])
+axes, ax2 = axes.values()
+axes.set_aspect('equal')
 
-mu_n_plot, = axes['mean'].plot([0, 1], [0, 0], label="numeric")
-mu_an_plot, = axes['mean'].plot([0,1],[0,0], label="analytic")
-sigma_an_plot = axes['var'].plot([0,1],[0,0], label="analytic")
-sigma_num_plot = axes['var'].plot([0,1],[0,0], label="numeric")
-axes['covar'].axis('off')
+n_plot = axes.contourf(X, V, preproc_func(p_num), levels=levels, cmap='rainbow')
 
-## For tsai###
+
 P = np.zeros((p_num.shape[0], p_num.shape[1]))
+
+
+sections = dict(x=[dict(coord=55)], 
+                v=[dict(coord=70)]
+                )
+
+for c in sections['x']:
+    c['plot'], = ax2.plot(X[ c['coord'],:],p_num[:, c['coord']])
+
+for c in sections['v']:
+    c['plot'], = ax2.plot(V[:,c['coord']],p_num[c['coord'],:])
+
+# ax2.set_ylim(1e-20,1)
+# ax2.set_yscale('log')
+
 for i in range(P.shape[0]):
     for j in range(P.shape[1]):
         P[i,j] = p_num[i,j]
@@ -73,8 +79,8 @@ for i in range(P.shape[0]):
             c+=1
         P[i,j] /= c
 
-# plt.contourf(P)
-# plt.show()
+mappable=axes.pcolormesh(X, V, preproc_func(p_num), cmap='rainbow', vmin=np.min(levels), vmax = np.max(levels))
+plt.colorbar(mappable, ax=axes, label="log(abs(p))")
 
 def update(i):
     if i == 0:
@@ -87,48 +93,30 @@ def update(i):
     physical_params['t0'] = i*integration_params['n_steps']*integration_params['dt']
 
     # Numeric
-    # p_num , norm , curr = funker_plank(p_num, physical_params, integration_params, save_norm=True)
+    # p_num , norm , curr = generic_3_step(p_num, physical_params, integration_params, save_norm=True)
     p_num, P = tsai_2D(p_num, P, physical_params, integration_params)
     p_num = np.array(p_num)
-    p_num[p_num<0] = 0
+    # p_num[p_num<0] = 0.0
+
     print("norm", quad_int(p_num, integration_params))
     # p_num /= norm[-1]
 
-    # Analytic
-    p_an = np.real(analytic(X,V, t , x0, v0, physical_params))
-    # print(quad_int(np.real(p_an), x,v))
-    # Moments
-    mu_num.append(quad_int(X*np.real(p_num), integration_params))
-    mu_an.append(quad_int(X*np.real(p_an), integration_params))
+    axes.clear()
+    mappable=axes.pcolormesh(X, V, preproc_func(p_num), cmap='rainbow', vmin=np.min(levels), vmax = np.max(levels))
+    axes.contour(X, V, p_num, colors=["r"] + 9*['k'], levels=np.linspace(0, 1, 10))
 
-    sigma_an.append(quad_int((X-mu_an[-1])**2*np.real(p_an), integration_params))
-    sigma_num.append(quad_int((X-mu_num[-1])**2*np.real(p_num), integration_params))
-    print(np.sqrt(np.mean((np.array(p_num) - p_an)**2)))
-    axes['mean'].clear()
-    axes['mean'].plot(np.linspace(t0, t, len(mu_num)),mu_num, label="numeric")
-    axes['mean'].plot(np.linspace(t0, t, len(mu_an)), mu_an, label="analytic")
-    axes['mean'].set_xlim(0, FRAMES*integration_params['dt']*integration_params['n_steps'])
-    axes['mean'].set_ylim(-2,3)
+    fig.suptitle(f"IMPLICIT t = {t:4.3f}, norm={quad_int(p_num, integration_params):.2f}")
 
-    axes['var'].clear()
-    axes['var'].plot(np.linspace(t0, t, len(sigma_num)),sigma_num, label="numeric")
-    axes['var'].plot(np.linspace(t0, t, len(sigma_an)), sigma_an, label="analytic")
-    axes['var'].set_xlim(0, FRAMES*integration_params['dt']*integration_params['n_steps'])
-    axes['var'].set_ylim(0,physical_params['sigma_squared']/physical_params['gamma'])
-    axes['var'].axhline(0.5*physical_params['sigma_squared']/physical_params['gamma'], ls=":", color='k')
+    for c in sections['x']:
+        axes.plot(X[:, c['coord']], V[:, c['coord']])
+        c['plot'].set_data(X[ c['coord'],:], p_num[:, c['coord']])
 
-    for axname, p_to_plot in zip(['analytic', 'numeric'], [p_an, p_num]):
-        axes[axname].clear()
-        axes[axname].contourf(X, V, preproc_func(p_to_plot), levels=levels, cmap='rainbow')
-        axes[axname].set_title(axname)
-    fig.suptitle(f"t = {t:.3}")
-    axes['mean'].legend()
-    axes['var'].legend()
-
-    # print(i, end="-", flush=True)
+    for c in sections['v']:
+        axes.plot(X[c['coord'],:], V[c['coord'],:])
+        c['plot'].set_data(V[:,c['coord']], p_num[c['coord'],:])
     return  
 
 
 anim = FuncAnimation(fig, update, frames=FRAMES, interval=3/60*1e3, blit=False,)
-# anim.save("anim_comparison_underdamped.mp4")
+# anim.save("arm_osc_impl.mp4")
 plt.show()

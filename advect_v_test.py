@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from mod4.tsai import  tsai_1D_v, tsai_2
-from mod4.implicit import advect_diffuse_IMPL
+from mod4.implicit import IMPL1D_v
 from mod4.utils import get_lin_mesh
 
 from matplotlib.animation import FuncAnimation
@@ -14,9 +14,9 @@ from scipy.special import erf
 evolve = tsai_1D_v
 
 
-i_pars = dict(Lv=10, dv=0.1, dt=3e-3, n_steps=20)
-phy_pars = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
-x = 2
+i_pars = dict(Lv=50, dv=0.1, dt=3e-3, n_steps=20)
+phy_pars = dict(omega_squared=1.0, gamma=0.1, sigma_squared=0.1**2)
+x = 1
 v = np.array(get_lin_mesh(i_pars))
 p = np.exp(-((v))**2)#*np.abs(np.sin(50*v))
 # p = np.random.normal(0,1, size=len(p))
@@ -42,9 +42,9 @@ for i in range(len(P)):
 def update(i):
     global v, p, P
     p, P = evolve(p, P, x, phy_pars, i_pars)
-
+    # p = IMPL1D_v(p, x, phy_pars, i_pars)
     p = np.array(p)
-    p /= np.sum(p)*i_pars['dv']
+    # p /= np.sum(p)*i_pars['dv']
     print("norm",np.sum(p)*0.1)
     line.set_data(v, np.array(p))
     print("err", np.sqrt(np.mean((np.array(p)-steady)**2)))

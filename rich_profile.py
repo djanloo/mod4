@@ -3,7 +3,9 @@
 from os import chdir
 from os.path import dirname, join
 from line_profiler import LineProfiler
-from mod4 import diffeq
+import mod4.implicit as impl
+import mod4.tsai as tsai
+
 from mod4.utils import get_quad_mesh, analytic
 import numpy as np
 
@@ -18,8 +20,8 @@ chdir(join(dirname(__file__), "mod4"))
 
 lp = LineProfiler()
 
-lp.add_function(diffeq.generic_3_step)
-wrap = lp(diffeq.generic_3_step)
+lp.add_function(tsai.tsai_2D)
+wrap = lp(tsai.tsai_2D)
 
 # integration & physical parameters
 integration_params = dict(  dt=3.14/1000, n_steps=10, 
@@ -34,7 +36,9 @@ x0, v0 = 1,0
 t0 = .95
 p0 = np.real(analytic(X,V, t0, x0, v0, physical_params))
 
-wrap(p0, physical_params, integration_params, save_norm=True)
+P = np.zeros(p0.shape)
+
+wrap(p0,P, physical_params, integration_params)
 
 lp.dump_stats("rich_profile_stats.lp")
 lp.print_stats()

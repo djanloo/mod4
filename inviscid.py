@@ -14,7 +14,6 @@ plt.rcParams['font.size'] = 11
 plt.rcParams['figure.figsize'] = (10/2.54, 7/2.54)
 
 
-
 i_pars = dict(Lv=15 ,Lx=15, dx=0.1, dv=0.1, dt=1e-3, n_steps=1000)
 phy_pars = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
 
@@ -24,7 +23,7 @@ print(len(v))
 rmss1 = []
 ks1 = []
 
-MM = 20
+MM = 1
 def coeff(f, base):
     global v
     return np.trapz(np.array(f)*base, v)
@@ -34,8 +33,9 @@ K_max = np.pi/i_pars['dv']
 
 print(K_min, K_max)
 
+a = 0.2
 def base_func(k, x):
-    f = np.cos(k*(x+3))*np.exp(-(x+3)**2)
+    f = np.cos(k*(x+3))*np.exp(-((x+3)/a)**2)
     f /= np.sqrt(coeff(f,f))
     return f
 
