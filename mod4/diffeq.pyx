@@ -1,7 +1,7 @@
 # distutils: language = c++
 from libcpp cimport bool
 
-from cython.parallel import prange 
+from cython.parallel import prange  
 import numpy as np 
 
 cimport cython   

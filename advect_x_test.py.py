@@ -31,10 +31,12 @@ def energy(p,x):
 def update(i):
     global v, p, P
     p, P = tsai_1D_x(p, P,v, phy_pars, i_pars)
-
+    # p = IMPL1D_x(p,v,phy_pars, i_pars)
     p = np.array(p)
     # p /= np.sum(p)*i_pars['dx']
     print("norm",np.sum(p)*0.1)
+    print("abs_norm",np.sum(np.abs(p))*0.1)
+
     print("energy", energy(p, x))
     line.set_data(x, np.array(p))
     return line,

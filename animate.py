@@ -12,24 +12,24 @@ FRAMES = 200
 
 # integration & physical parameters
 integration_params = dict(  dt=1e-3, n_steps=30, 
-                            Lx=8, Lv=8, dx=0.1, dv=0.1, 
+                            Lx=10, Lv=10, dx=0.1, dv=0.1, 
                             ADI=False,
                             diffCN=True,
                             CN=np.array([True, True, True]))
 
-physical_params = dict(omega_squared=1.0, gamma=1.1, sigma_squared=0.8**2)
+physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
 X, V = get_quad_mesh(integration_params)
 
 # Initial conditions
 x0, v0 = 0,0
-t0 = .8
+t0 = 10
 p0 = analytic(X,V, t0, x0, v0, physical_params)
 
 # p0 = ((X**2 + V**2) <1).astype(float)
 # p0 = np.ones((len(x), len(v)))
 # r = np.sqrt(X**2 + V**2)
 # p0 = np.exp( - ((r-0.5)/0.2)**2)
-p0 = np.exp(-((X-1)**2 + V**2)/0.5**2)
+p0 = np.exp(-((X)**2 + (V-2)**2)/0.5**2)
 
 p_num = np.real(p0)
 p_num /= quad_int(p_num , integration_params)

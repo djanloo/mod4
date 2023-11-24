@@ -252,6 +252,10 @@ cpdef tsai_1D_x(double [:] p0, double [:] P0, double v, dict physical_params, di
             P[i] =  P[i] +\
                     (-g[1,2]) *p_new[i+1]  + (-g[0,2] )  *p[i+1] +\
                     ( g[1,1]) *p_new[i]    + ( g[0,1] )  *p[i]
+
+        # Test on P- BCs
+        P[0] = 0.0
+        P[N-2] = 0.0
         
         p = p_new.copy()
     return p, P
@@ -524,10 +528,12 @@ def tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict integr
     cdef double dt   = integration_params['dt']
     cdef int n_steps = integration_params['n_steps']
     cdef double t0    = physical_params.get('t0', 0.0)
+    cdef int time_index=0
+    cdef double time 
 
     ## Space
     cdef double Lv,dv
-    Lv,dv = map(integration_params.get, ["Lv", "dv"])
+    Lv,dv = map(integration_params.get, ["Lv", "dv"]) 
     cdef int  M = int(Lv/dv)
     cdef double [:] v = np.arange(-int(M)//2, int(M)//2)*dv
 
@@ -536,11 +542,13 @@ def tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict integr
     cdef int  N = int(Lx/dx)
     cdef double [:] x = np.arange(-int(N)//2, int(N)//2)*dv
 
-    cdef int time_index = 0, j = 0,i=0, k = 0, m=0
+    cdef int j=0, i=0, k=0, m=0
 
     cdef double [:,:] p = p0.copy()
     cdef double [:,:] P = P0.copy()
-    cdef double [:] p_new
+
+    cdef double [:] p_new_x, p_new_v 
+    p_new_x , p_new_v = np.zeros(N), np.zeros(M)
 
     cdef double theta = 0.5*dt/dv
     cdef double eta = 0.25*dt/dv**2
@@ -552,8 +560,9 @@ def tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict integr
     cdef double [:] lower_x, diagonal_x, upper_x, b_x
     lower_x, diagonal_x, upper_x, b_x = np.ones(N), np.ones(N), np.ones(N), np.ones(N)
 
+    # Coefficients
     cdef double [:, :] g = np.zeros((2,3)), s = np.zeros((2,3)), futures = np.zeros((2,3)), pasts = np.zeros((2,3))
-
+    cdef double denom
     # print("x",np.array(x))
     # print("v",np.array(v))
     # print("theta",theta)
@@ -572,92 +581,6 @@ def tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict integr
 
     for time_index in range(n_steps):
         time = t0 + time_index*dt
-
-
-        ########################### First update: v ######################
-        for i in range(N):
-            ## Updates grid points
-            for j in range(M):
-
-                # Coefficients of equation 8
-                for k in range(3):
-                    # k = (left, here, right)
-                    for m in range(2):
-                        # m = (now, next)
-                        s[m,k] = eta*sigma_squared_full(x[i], v[j] + (k-1)*dv, time + m*dt, physical_params)
-                        g[m,k] = theta*a(x[i], v[j] + (k-1)*dv, time + m*dt, physical_params)
-
-                for k in range(3):
-                    # K swithces coefficient (see equivalence map)
-                    for m in range(2):
-                        # m is i-1 or i 
-                        if k == 0:
-                            futures[m,k] = (g[1, m] + 2*s[1, m+1] + 4*s[1, m])
-                            pasts[m, k]  = (g[0, m] + 2*s[0, m+1] + 4*s[0, m])
-                        if k == 1:
-                            pasts[m,k] = 1.0 - 6*s[0, m+1] - 6*s[0, m]
-                        if k == 2:
-                            futures[m,k] =  (-g[1, m+1] + 4*s[1, m+1] + 2*s[1, m])
-                            pasts[m,k]   =  (-g[0, m+1] + 4*s[0, m+1] + 2*s[0, m])
-
-                        denom = 1 + 6*s[1, m+1] + 6*s[1, m]
-                        pasts[m,k]   /= denom 
-                        futures[m,k] /= denom
-
-                # special case: remember lower definition
-                # first coefficient should be A_minus = 1 - 3*futures[0,0]
-                # but because of the lower definition i gets shifted forward by one
-                lower_v[j]    = 1 - 3*futures[1,0]
-                diagonal_v[j] = 4.0 - 3*futures[0, 2]-3*futures[1,0] 
-                upper_v[j]    = 1 - 3*futures[1, 2]
-
-                # Interfaces
-                b_v[j]  = p[j,i]*(3*pasts[0,2] + 3*pasts[1,0])
-
-                if j > 1:
-                    b_v[j] += p[j-1,i]*(3*pasts[0,0])
-                if j < M-2:
-                    b_v[j] += p[j+1,i]*(3*pasts[1,2])
-
-                #Averages
-                if j!= M-1:
-                    b_v[j] += P[j,i]  *(3*pasts[1,1])
-                if j!= 0:
-                    b_v[j] += P[j-1,i]*(3*pasts[0,1])
-
-            ## BCs left
-            lower_v[0] = 0.0
-            upper_v[0] = 0.0
-            diagonal_v[0] = 1.0
-            b_v[0] = 0.0
-
-            ## BCs right
-            lower_v[M-2] = 0.0
-            upper_v[M-2] = 0.0
-            diagonal_v[M-1] = 1.0
-            b_v[M-1] = 0.0
-
-            # Solves for the values of p on the grid points
-            p_new = tridiag(lower_v, diagonal_v, upper_v, b_v)
-            
-            # Update of averages
-            for j in range(M-1):
-                # Coefficients of equation 8
-                for k in range(3):
-                    # k = (left, here, right)
-                    for m in range(2):
-                        # m = (now, next)
-                        s[m,k] = eta*sigma_squared_full(x[i], v[j] + (k-1)*dv, time + m*dt, physical_params)
-                        g[m,k] = theta*a(x[i], v[j]+(k-1)*dv, time + m*dt, physical_params)
-
-                P[j,i] =  (1 - 6*s[0,2] - 6*s[0,1])*P[j,i] +\
-                        (-g[1,2] + 4*s[1,2] + 2*s[1,1]) *p_new[j+1]  + (-g[0,2] + 4*s[0,2] + 2*s[0,1])  *p[j+1, i] +\
-                        ( g[1,1] + 2*s[1,2] + 4*s[1,1]) *p_new[j]    + ( g[0,1] + 2*s[0,2] + 4*s[0,1])  *p[j, i]
-
-                P[j,i] /= 1 + 6*s[1,2] + 6*s[1, 1]
-
-            for j in range(M):
-                p[j, i] = p_new[j]
 
         ###################################### Second evolution: x ###################
         for j in range(M):
@@ -710,6 +633,7 @@ def tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict integr
                 if i!= 0:
                     b_x[i] += P[j, i-1]*(3*pasts[0,1])
 
+
             ## BCs left
             lower_x[0] = 0.0
             upper_x[0] = 0.0
@@ -723,7 +647,7 @@ def tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict integr
             b_x[N-1] = 0.0
  
             # Solves for the values of p on the grid points
-            p_new = tridiag(lower_x, diagonal_x, upper_x, b_x)
+            p_new_x = tridiag(lower_x, diagonal_x, upper_x, b_x) 
 
             # Update of averages
             for i in range(N-1):
@@ -736,12 +660,97 @@ def tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict integr
                         g[m,k] = theta*v[j]
 
                 P[j,i] =  (1 - 6*s[0,2] - 6*s[0,1])*P[j,i] +\
-                        (-g[1,2] + 4*s[1,2] + 2*s[1,1]) *p_new[i+1]  + (-g[0,2] + 4*s[0,2] + 2*s[0,1])  *p[j,i+1] +\
-                        ( g[1,1] + 2*s[1,2] + 4*s[1,1]) *p_new[i]    + ( g[0,1] + 2*s[0,2] + 4*s[0,1])  *p[j,i]
+                        (-g[1,2] + 4*s[1,2] + 2*s[1,1]) *p_new_x[i+1]  + (-g[0,2] + 4*s[0,2] + 2*s[0,1])  *p[j,i+1] +\
+                        ( g[1,1] + 2*s[1,2] + 4*s[1,1]) *p_new_x[i]    + ( g[0,1] + 2*s[0,2] + 4*s[0,1])  *p[j,i]
+
+                P[j,i] /= 1 + 6*s[1,2] + 6*s[1, 1]
+
+            for i in range(N):
+                p[j, i] = p_new_x[i]
+
+        ########################### First update: v ###################### 
+        for i in range(N):
+            ## Updates grid points
+            for j in range(M):
+
+                # Coefficients of equation 8
+                for k in range(3):
+                    # k = (left, here, right)
+                    for m in range(2):
+                        # m = (now, next)
+                        s[m,k] = eta*sigma_squared_full(x[i], v[j] + (k-1)*dv, time + m*dt, physical_params)
+                        g[m,k] = theta*a(x[i], v[j] + (k-1)*dv, time + m*dt, physical_params)
+
+                for k in range(3):
+                    # K swithces coefficient (see equivalence map)
+                    for m in range(2):
+                        # m is i-1 or i 
+                        if k == 0:
+                            futures[m,k] = (g[1, m] + 2*s[1, m+1] + 4*s[1, m])
+                            pasts[m, k]  = (g[0, m] + 2*s[0, m+1] + 4*s[0, m])
+                        if k == 1:
+                            pasts[m,k] = 1.0 - 6*s[0, m+1] - 6*s[0, m]
+                        if k == 2:
+                            futures[m,k] =  (-g[1, m+1] + 4*s[1, m+1] + 2*s[1, m])
+                            pasts[m,k]   =  (-g[0, m+1] + 4*s[0, m+1] + 2*s[0, m])
+
+                        denom = 1 + 6*s[1, m+1] + 6*s[1, m]
+                        pasts[m,k]   /= denom 
+                        futures[m,k] /= denom
+
+                # special case: remember lower definition
+                # first coefficient should be A_minus = 1 - 3*futures[0,0]
+                # but because of the lower definition i gets shifted forward by one
+                lower_v[j]    = 1 - 3*futures[1,0]
+                diagonal_v[j] = 4.0 - 3*futures[0, 2]-3*futures[1,0] 
+                upper_v[j]    = 1 - 3*futures[1, 2]
+
+                # Interfaces
+                b_v[j]  = p[j,i]*(3*pasts[0,2] + 3*pasts[1,0])
+
+                if j > 1:
+                    b_v[j] += p[j-1,i]*(3*pasts[0,0])
+                if j < M-2:
+                    b_v[j] += p[j+1,i]*(3*pasts[1,2])
+
+                #Averages
+                if j!= M-1:
+                    b_v[j] += P[j,i]  *(3*pasts[1,1])
+                if j!= 0:
+                    b_v[j] += P[j-1,i]*(3*pasts[0,1])
+                
+            ## BCs left
+            lower_v[0] = 0.0
+            upper_v[0] = 0.0
+            diagonal_v[0] = 1.0
+            b_v[0] = 0.0
+
+            ## BCs right
+            lower_v[M-2] = 0.0
+            upper_v[M-2] = 0.0
+            diagonal_v[M-1] = 1.0
+            b_v[M-1] = 0.0
+
+            # Solves for the values of p on the grid points
+            p_new_v = tridiag(lower_v, diagonal_v, upper_v, b_v)
+            
+            # Update of averages
+            for j in range(M-1):
+                # Coefficients of equation 8 
+                for k in range(3):
+                    # k = (left, here, right)
+                    for m in range(2):
+                        # m = (now, next)
+                        s[m,k] = eta*sigma_squared_full(x[i], v[j] + (k-1)*dv, time + m*dt, physical_params)
+                        g[m,k] = theta*a(x[i], v[j]+(k-1)*dv, time + m*dt, physical_params)
+
+                P[j,i] =  (1 - 6*s[0,2] - 6*s[0,1])*P[j,i] +\
+                        (-g[1,2] + 4*s[1,2] + 2*s[1,1]) *p_new_v[j+1]  + (-g[0,2] + 4*s[0,2] + 2*s[0,1])  *p[j+1, i] +\
+                        ( g[1,1] + 2*s[1,2] + 4*s[1,1]) *p_new_v[j]    + ( g[0,1] + 2*s[0,2] + 4*s[0,1])  *p[j, i]
 
                 P[j,i] /= 1 + 6*s[1,2] + 6*s[1, 1]
 
             for j in range(M):
-                p[j, i] = p_new[i]
-
+                p[j, i] = p_new_v[j]
+ 
     return p, P 
