@@ -28,7 +28,7 @@ cpdef tsai_1D_v(double [:] p0, double [:] P0, double x, dict physical_params, di
     Lv,dv = map(integration_params.get, ["Lv", "dv"])
 
     cdef int  M = int(Lv/dv) + 1
-    cdef double [:] v = np.arange(-int(M)//2, int(M)//2)*dv
+    cdef double [:] v = get_lin_mesh(integration_params)
 
     cdef int time_index = 0, j = 0, k=0, m=0
 
@@ -252,7 +252,7 @@ cpdef tsai_1D_x(double [:] p0, double [:] P0, double v, dict physical_params, di
             P[i] =  P[i] +\
                     (-g[1,2]) *p_new[i+1]  + (-g[0,2] )  *p[i+1] +\
                     ( g[1,1]) *p_new[i]    + ( g[0,1] )  *p[i]
-
+        
         p = p_new.copy()
     return p, P
 
@@ -462,7 +462,7 @@ cpdef tsai_2(double [:] p0, double x, dict physical_params, dict integration_par
         # print("lower\n",np.array(lower))
         # print("diag\n", np.array(diagonal))
         # print("upper\n",np.array(upper))
-
+ 
         # Then prepares the constant vector
         # Since factors depend only on present values
         for j in range(M):
@@ -517,9 +517,10 @@ cpdef tsai_2(double [:] p0, double x, dict physical_params, dict integration_par
     return p
 
 
-cpdef tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict integration_params):
+
+def tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict integration_params):
     # return NotImplementedError("This does not work well") 
-    ## Time
+    ## Time  
     cdef double dt   = integration_params['dt']
     cdef int n_steps = integration_params['n_steps']
     cdef double t0    = physical_params.get('t0', 0.0)
@@ -607,7 +608,7 @@ cpdef tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict inte
                 # first coefficient should be A_minus = 1 - 3*futures[0,0]
                 # but because of the lower definition i gets shifted forward by one
                 lower_v[j]    = 1 - 3*futures[1,0]
-                diagonal_v[j] = 4 - 3*futures[0, 2]-3*futures[1,0] 
+                diagonal_v[j] = 4.0 - 3*futures[0, 2]-3*futures[1,0] 
                 upper_v[j]    = 1 - 3*futures[1, 2]
 
                 # Interfaces
@@ -634,12 +635,11 @@ cpdef tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict inte
             lower_v[M-2] = 0.0
             upper_v[M-2] = 0.0
             diagonal_v[M-1] = 1.0
-            b_v[N-1] = 0.0
+            b_v[M-1] = 0.0
 
             # Solves for the values of p on the grid points
             p_new = tridiag(lower_v, diagonal_v, upper_v, b_v)
             
-
             # Update of averages
             for j in range(M-1):
                 # Coefficients of equation 8
@@ -721,15 +721,9 @@ cpdef tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict inte
             upper_x[N-2] = 0.0
             diagonal_x[N-1] = 1.0
             b_x[N-1] = 0.0
-
+ 
             # Solves for the values of p on the grid points
             p_new = tridiag(lower_x, diagonal_x, upper_x, b_x)
-
-            # BC
-            p_new[0] = 0.0
-            p_new[1] = 0.0
-            p_new[N-1] = 0.0
-            p_new[N-2] = 0.0
 
             # Update of averages
             for i in range(N-1):
@@ -750,4 +744,4 @@ cpdef tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict inte
             for j in range(M):
                 p[j, i] = p_new[i]
 
-    return p, P
+    return p, P 

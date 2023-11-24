@@ -54,7 +54,6 @@ def get_lin_mesh(integration_params):
     mesh = np.zeros(N+1)
     for i in range(N+1):
         mesh[i] = -L/2 + i*d
-    print(mesh)
     return mesh
 
 cpdef cyclic_tridiag(double [:] lower, double [:] diag, double [:] upper, double c_up_right, double c_down_left, double [:] d):

@@ -1,17 +1,17 @@
 # distutils: language = c++
 from libcpp cimport bool
 
-from cython.parallel import prange
-import numpy as np
+from cython.parallel import prange 
+import numpy as np 
 
-cimport cython
+cimport cython   
 from cython.parallel import prange
 cimport numpy as np
 
 from time import perf_counter
 from libc.math cimport sin, fabs
 
-cimport utils
+cimport utils   
 from utils import quad_int, get_tridiag
 from utils cimport tridiag
 

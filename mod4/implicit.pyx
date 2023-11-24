@@ -471,8 +471,10 @@ cpdef IMPL1D_x(double [:] p0, double v, dict physical_params, dict integration_p
       a  =  theta * v
 
       diagonal[j] =  1.0
-      upper[j]    =  a if p[j] > 0 else -a
-      lower[j]    =  -a if p[j] > 0 else a
+      upper[j]    =   a 
+      lower[j]    =  -a 
+      # if b[j]<0:
+      #   b[j] = 0
     
 
      ## BCs left
