@@ -4,7 +4,8 @@ __pycache__/
 *$py.class
 
 # Venv
-mod4_venv/
+mod4_venv_old/
+m4venv/
 
 # Big files
 *.mp4

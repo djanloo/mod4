@@ -1,25 +1,25 @@
-.PHONY: generate profile clear
+.PHONY: generate profile clean
 
 generate:
 	@python3 -m mod4.setup
 
 profile:
-	# @make clear
+	# @make clean
 	@python3 -m mod4.setup --profile
 
 notrace:
-	# @make clear
+	# @make clean
 	@python3 -m mod4.setup --notrace
 
 hardcore:
-	# make clear
+	# make clean
 	@python3 -m mod4.setup --hardcore
 
 hardcoreprofile:
-	# make clear
+	# make clean
 	@python3 -m mod4.setup --hardcore --profile
 
-clear:
+clean:
 	@echo "Cleaning all.."
 	@rm -f mod4/*.c
 	@rm -f mod4/*.cpp
