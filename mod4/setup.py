@@ -86,6 +86,9 @@ extension_kwargs = dict(
 cython_compiler_directives = get_directive_defaults()
 cython_compiler_directives['language_level'] = "3"
 cython_compiler_directives['warn'] = True
+# cython_compiler_directives['warn.undeclared'] = True 
+# cython_compiler_directives['warn.maybe_uninitialized'] = True
+# cython_compiler_directives['warn.unused'] = True
 
 # This is for me
 cython_compiler_directives['djanloo_compile_mode'] = 'default'

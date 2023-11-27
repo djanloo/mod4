@@ -11,9 +11,8 @@ cimport numpy as np
 from time import perf_counter
 from libc.math cimport sin
 
-cimport utils
-from utils import quad_int, get_tridiag
-from utils cimport tridiag
+from mod4.utils import quad_int, get_tridiag
+from mod4.utils cimport tridiag
 
 cimport diffeq
 from diffeq cimport a, sigma_squared

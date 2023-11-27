@@ -11,10 +11,10 @@ cimport numpy as np
 from time import perf_counter
 from libc.math cimport sin
 
-from utils import quad_int, get_tridiag, get_lin_mesh
-from utils cimport tridiag
+from mod4.utils import quad_int, get_tridiag, get_lin_mesh
+from mod4.utils cimport tridiag
 
-from diffeq cimport a, sigma_squared_full
+from mod4.diffeq cimport a, sigma_squared_full
 
 
 cpdef tsai_1D_v(double [:] p0, double [:] P0, double x, dict physical_params, dict integration_params):
@@ -410,120 +410,120 @@ cpdef tsai_1D_x(double [:] p0, double [:] P0, double v, dict physical_params, di
 #         p = p_new.copy()
 #     return p
 
-cpdef tsai_2(double [:] p0, double x, dict physical_params, dict integration_params):
+# cpdef tsai_2(double [:] p0, double x, dict physical_params, dict integration_params):
 
-    ## Time
-    cdef double dt   = integration_params['dt']
-    cdef int n_steps = integration_params['n_steps']
-    cdef double t0    = physical_params.get('t0', 0.0)
+#     ## Time
+#     cdef double dt   = integration_params['dt']
+#     cdef int n_steps = integration_params['n_steps']
+#     cdef double t0    = physical_params.get('t0', 0.0)
 
-    ## Space
-    cdef double Lv,dv
-    Lv,dv = map(integration_params.get, ["Lv", "dv"])
+#     ## Space
+#     cdef double Lv,dv
+#     Lv,dv = map(integration_params.get, ["Lv", "dv"])
 
-    cdef int  M = int(Lv/dv)
-    cdef double [:] v = np.arange(-int(M)//2, int(M)//2)*dv
+#     cdef int  M = int(Lv/dv)
+#     cdef double [:] v = np.arange(-int(M)//2, int(M)//2)*dv
 
-    cdef int time_index = 0, j = 0
+#     cdef int time_index = 0, j = 0
 
-    cdef double [:] p = p0.copy(), p_new = p0.copy()
-    cdef double [:] P = np.zeros(len(p0)-1)
+#     cdef double [:] p = p0.copy(), p_new = p0.copy()
+#     cdef double [:] P = np.zeros(len(p0)-1)
 
-    # Computation of initial cell averages
-    for j in range(M-1):
-        P[j] = 0.5*(p[j] + p[j+1])
+#     # Computation of initial cell averages
+#     for j in range(M-1):
+#         P[j] = 0.5*(p[j] + p[j+1])
 
-    cdef double theta = 0.5*dt/dv
-    cdef double eta   = 0.5*dt/dv**2
+#     cdef double theta = 0.5*dt/dv
+#     cdef double eta   = 0.5*dt/dv**2
 
-    cdef double s_here, s_left, s_right
-    cdef double u_right, u_leftt, u_heree
+#     cdef double s_here, s_left, s_right
+#     cdef double u_right, u_leftt, u_heree
 
-    # Declarations of the diagonals
-    cdef double [:] lower, diagonal, upper, b
-    lower, diagonal, upper, b = np.ones(M), np.ones(M), np.ones(M), np.ones(M)
+#     # Declarations of the diagonals
+#     cdef double [:] lower, diagonal, upper, b
+#     lower, diagonal, upper, b = np.ones(M), np.ones(M), np.ones(M), np.ones(M)
     
-    cdef double [:] which_prob
+#     cdef double [:] which_prob
 
-    for time_index in range(n_steps):
-        time = t0 + time_index*dt
+#     for time_index in range(n_steps):
+#         time = t0 + time_index*dt
 
-        # Evolution of values at the border
-        # First prepares the tridiagonal matrix 
-        # since factors depend only on future values
-        for j in range(M):
-            s_here  = eta*sigma_squared_full(x,v[j],      time+dt, physical_params)
-            s_left  = eta*sigma_squared_full(x,v[j] - dv, time+dt, physical_params)
-            s_right = eta*sigma_squared_full(x,v[j] + dv, time+dt, physical_params)
+#         # Evolution of values at the border
+#         # First prepares the tridiagonal matrix 
+#         # since factors depend only on future values
+#         for j in range(M):
+#             s_here  = eta*sigma_squared_full(x,v[j],      time+dt, physical_params)
+#             s_left  = eta*sigma_squared_full(x,v[j] - dv, time+dt, physical_params)
+#             s_right = eta*sigma_squared_full(x,v[j] + dv, time+dt, physical_params)
 
-            u_right = theta*a(x, v[j]+dv, time + dt, physical_params)
-            # u_leftt = theta*a(x, v[j]-dv, time + dt, physical_params)
-            u_heree = theta*a(x, v[j],    time + dt, physical_params)
+#             u_right = theta*a(x, v[j]+dv, time + dt, physical_params)
+#             # u_leftt = theta*a(x, v[j]-dv, time + dt, physical_params)
+#             u_heree = theta*a(x, v[j],    time + dt, physical_params)
 
-            lower[j]    = 1.0 - 3*( u_heree   + 2*s_right + 4*s_here)
-            diagonal[j] = 4.0 + 3*( 2*s_right + 8*s_here  + 2*s_left)
-            upper[j]    = 1.0 - 3*(-u_right   + 4*s_right + 2*s_here)
-        # print("lower\n",np.array(lower))
-        # print("diag\n", np.array(diagonal))
-        # print("upper\n",np.array(upper))
+#             lower[j]    = 1.0 - 3*( u_heree   + 2*s_right + 4*s_here)
+#             diagonal[j] = 4.0 + 3*( 2*s_right + 8*s_here  + 2*s_left)
+#             upper[j]    = 1.0 - 3*(-u_right   + 4*s_right + 2*s_here)
+#         # print("lower\n",np.array(lower))
+#         # print("diag\n", np.array(diagonal))
+#         # print("upper\n",np.array(upper))
  
-        # Then prepares the constant vector
-        # Since factors depend only on present values
-        for j in range(M):
-            s_here  = eta*sigma_squared_full(x,v[j],      time, physical_params)
-            s_left  = eta*sigma_squared_full(x,v[j] - dv, time, physical_params)
-            s_right = eta*sigma_squared_full(x,v[j] + dv, time, physical_params)
+#         # Then prepares the constant vector
+#         # Since factors depend only on present values
+#         for j in range(M):
+#             s_here  = eta*sigma_squared_full(x,v[j],      time, physical_params)
+#             s_left  = eta*sigma_squared_full(x,v[j] - dv, time, physical_params)
+#             s_right = eta*sigma_squared_full(x,v[j] + dv, time, physical_params)
 
-            u_right = theta*a(x, v[j]+dv, time, physical_params)
-            u_leftt = theta*a(x, v[j]-dv, time, physical_params)
-            u_heree = theta*a(x, v[j],    time, physical_params)
+#             u_right = theta*a(x, v[j]+dv, time, physical_params)
+#             u_leftt = theta*a(x, v[j]-dv, time, physical_params)
+#             u_heree = theta*a(x, v[j],    time, physical_params)
 
-            b[j] = p[j]*(2*s_right +8*s_here + 2*s_left)
-            if j !=  M-1:
-                b[j] += p[j+1]*(- u_right + 4*s_right + 2*s_here)
-                b[j] += P[j]  *(  1 - 6*s_right - 6*s_here)
-            if j != 0:
-                b[j] += p[j-1]*( u_leftt + 2*s_here + 4*s_left)
-                b[j] += P[j-1]*( 1 - 6*s_here - 6*s_left)
+#             b[j] = p[j]*(2*s_right +8*s_here + 2*s_left)
+#             if j !=  M-1:
+#                 b[j] += p[j+1]*(- u_right + 4*s_right + 2*s_here)
+#                 b[j] += P[j]  *(  1 - 6*s_right - 6*s_here)
+#             if j != 0:
+#                 b[j] += p[j-1]*( u_leftt + 2*s_here + 4*s_left)
+#                 b[j] += P[j-1]*( 1 - 6*s_here - 6*s_left)
 
-            b[j] *= 3
-        print(np.array(b))
-        p_new = tridiag(lower, diagonal, upper, b)
-        # BC
-        p_new[0] = 0.0
-        p_new[M-1] = 0.0
+#             b[j] *= 3
+#         print(np.array(b))
+#         p_new = tridiag(lower, diagonal, upper, b)
+#         # BC
+#         p_new[0] = 0.0
+#         p_new[M-1] = 0.0
 
-        # Evolution of the mean values
-        for j in range(M-1):
+#         # Evolution of the mean values
+#         for j in range(M-1):
 
-            for when in [0.0, 1.0]:
-                print(f"when {when}")
-                s_here  = eta*sigma_squared_full(x,v[j],    time + when*dt, physical_params)
-                s_right = eta*sigma_squared_full(x,v[j]+dv, time + when*dt, physical_params)
+#             for when in [0.0, 1.0]:
+#                 print(f"when {when}")
+#                 s_here  = eta*sigma_squared_full(x,v[j],    time + when*dt, physical_params)
+#                 s_right = eta*sigma_squared_full(x,v[j]+dv, time + when*dt, physical_params)
 
-                u_right = theta*a(x,v[j]+dv,time + when*dt, physical_params)
-                u_heree = theta*a(x,v[j],   time + when*dt, physical_params)
+#                 u_right = theta*a(x,v[j]+dv,time + when*dt, physical_params)
+#                 u_heree = theta*a(x,v[j],   time + when*dt, physical_params)
                 
-                if when == 0.0:
-                    P[j] =  P[j] * (1 - 6*s_right - 6*s_here)
+#                 if when == 0.0:
+#                     P[j] =  P[j] * (1 - 6*s_right - 6*s_here)
 
-                if when == 0.0:
-                    which_prob = p 
-                else:
-                    which_prob = p_new 
+#                 if when == 0.0:
+#                     which_prob = p 
+#                 else:
+#                     which_prob = p_new 
                 
-                P[j] += which_prob[j]  *(  u_heree + 2*s_right + 4*s_here)
-                P[j] += which_prob[j+1]*( -u_right + 4*s_right + 2*s_here)
+#                 P[j] += which_prob[j]  *(  u_heree + 2*s_right + 4*s_here)
+#                 P[j] += which_prob[j+1]*( -u_right + 4*s_right + 2*s_here)
 
-            P[j] /= 1.0 + 6*s_right + 6*s_here
-        # exit()
-        p = p_new.copy()
-    return p
+#             P[j] /= 1.0 + 6*s_right + 6*s_here
+#         # exit()
+#         p = p_new.copy()
+#     return p
 
 
 
 def tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict integration_params):
-    # return NotImplementedError("This does not work well") 
+    # return NotImplementedError("This does not work well")  
     ## Time  
     cdef double dt   = integration_params['dt']
     cdef int n_steps = integration_params['n_steps']
@@ -544,8 +544,8 @@ def tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict integr
 
     cdef int j=0, i=0, k=0, m=0
 
-    cdef double [:,:] p = p0.copy()
-    cdef double [:,:] P = P0.copy()
+    cdef double [:,:] px = p0.copy(), pv = p0.copy()
+    cdef double [:,:] Pv = P0.copy(), Px = P0.copy()
 
     cdef double [:] p_new_x, p_new_v 
     p_new_x , p_new_v = np.zeros(N), np.zeros(M)
@@ -582,9 +582,21 @@ def tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict integr
     for time_index in range(n_steps):
         time = t0 + time_index*dt
 
-        ###################################### Second evolution: x ###################
-        for j in range(M):
-            ## Updates grid points
+
+        # ## Mixing phase
+        # px = 0.99*np.array(px) + 0.01*np.array(pv)
+        # pv = 0.99*np.array(pv) + 0.01*np.array(px)
+
+        # Px = 0.99*np.array(Px) + 0.01*np.array(Pv)
+        # Pv = 0.99*np.array(Pv) + 0.01*np.array(Px)
+
+
+        ###################################### update: x ###################
+
+        # For each value of v_j
+        for j in range(1,M-1): # Extrema are Dirichlet-fixed: v=vmin and v=vmax are not evolved
+
+            ## Generates tridiagonal coefficients
             for i in range(N):
 
                 # Coefficients of equation 8
@@ -592,7 +604,7 @@ def tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict integr
                     # k = (left, here, right)
                     for m in range(2):
                         # m = (now, next)
-                        s[m,k] = 0.0#eta*sigma_squared_full(x[i] + (k-1)*dx, v[j] , time + m*dt, physical_params)
+                        s[m,k] = 0.0 # No diffusion
                         g[m,k] = theta*v[j]
 
                 for k in range(3):
@@ -620,18 +632,18 @@ def tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict integr
                 upper_x[i]    = 1.0 - 3*futures[1, 2]
 
                 # Interfaces
-                b_x[i]  = p[j,i]*(3*pasts[0,2] + 3*pasts[1,0])
+                b_x[i]  = px[j,i]*(3*pasts[0,2] + 3*pasts[1,0])
 
                 if i > 1:
-                    b_x[i] += p[j,i-1]*(3*pasts[0,0])
+                    b_x[i] += px[j,i-1]*(3*pasts[0,0])
                 if i < N-2:
-                    b_x[i] += p[j,i+1]*(3*pasts[1,2])
+                    b_x[i] += px[j,i+1]*(3*pasts[1,2])
 
                 #Averages
                 if i!= N-1:
-                    b_x[i] += P[j, i]  *(3*pasts[1,1])
+                    b_x[i] += Px[j, i]  *(3*pasts[1,1])
                 if i!= 0:
-                    b_x[i] += P[j, i-1]*(3*pasts[0,1])
+                    b_x[i] += Px[j, i-1]*(3*pasts[0,1])
 
 
             ## BCs left
@@ -645,7 +657,7 @@ def tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict integr
             upper_x[N-2] = 0.0
             diagonal_x[N-1] = 1.0
             b_x[N-1] = 0.0
- 
+
             # Solves for the values of p on the grid points
             p_new_x = tridiag(lower_x, diagonal_x, upper_x, b_x) 
 
@@ -656,21 +668,28 @@ def tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict integr
                     # k = (left, here, right)
                     for m in range(2):
                         # m = (now, next)
-                        s[m,k] = 0.0#eta*sigma_squared_full(x[i] + (k-1)*dx, v[j], time + m*dt, physical_params)
+                        s[m,k] = 0.0 # No diffusion
                         g[m,k] = theta*v[j]
 
-                P[j,i] =  (1 - 6*s[0,2] - 6*s[0,1])*P[j,i] +\
-                        (-g[1,2] + 4*s[1,2] + 2*s[1,1]) *p_new_x[i+1]  + (-g[0,2] + 4*s[0,2] + 2*s[0,1])  *p[j,i+1] +\
-                        ( g[1,1] + 2*s[1,2] + 4*s[1,1]) *p_new_x[i]    + ( g[0,1] + 2*s[0,2] + 4*s[0,1])  *p[j,i]
+                Px[j,i] =  (1 - 6*s[0,2] - 6*s[0,1])*Px[j,i] +\
+                        (-g[1,2] + 4*s[1,2] + 2*s[1,1]) *p_new_x[i+1]  + (-g[0,2] + 4*s[0,2] + 2*s[0,1])  *px[j,i+1] +\
+                        ( g[1,1] + 2*s[1,2] + 4*s[1,1]) *p_new_x[i]    + ( g[0,1] + 2*s[0,2] + 4*s[0,1])  *px[j,i]
 
-                P[j,i] /= 1 + 6*s[1,2] + 6*s[1, 1]
+                Px[j,i] /= 1 + 6*s[1,2] + 6*s[1, 1]
 
             for i in range(N):
-                p[j, i] = p_new_x[i]
+                px[j, i] = p_new_x[i]
 
-        ########################### First update: v ###################### 
-        for i in range(N):
-            ## Updates grid points
+
+        # Gives the ball
+        pv = px.copy()
+        Pv = Px.copy()
+        
+        ########################### update: v ###################### 
+    
+        # For each value of x_i
+        for i in range(1,N-1): # Extrema are Dirichlet-fixed
+
             for j in range(M):
 
                 # Coefficients of equation 8
@@ -706,18 +725,18 @@ def tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict integr
                 upper_v[j]    = 1 - 3*futures[1, 2]
 
                 # Interfaces
-                b_v[j]  = p[j,i]*(3*pasts[0,2] + 3*pasts[1,0])
+                b_v[j]  = pv[j,i]*(3*pasts[0,2] + 3*pasts[1,0])
 
                 if j > 1:
-                    b_v[j] += p[j-1,i]*(3*pasts[0,0])
+                    b_v[j] += pv[j-1,i]*(3*pasts[0,0])
                 if j < M-2:
-                    b_v[j] += p[j+1,i]*(3*pasts[1,2])
+                    b_v[j] += pv[j+1,i]*(3*pasts[1,2])
 
                 #Averages
                 if j!= M-1:
-                    b_v[j] += P[j,i]  *(3*pasts[1,1])
+                    b_v[j] += Pv[j,i]  *(3*pasts[1,1])
                 if j!= 0:
-                    b_v[j] += P[j-1,i]*(3*pasts[0,1])
+                    b_v[j] += Pv[j-1,i]*(3*pasts[0,1])
                 
             ## BCs left
             lower_v[0] = 0.0
@@ -744,13 +763,17 @@ def tsai_2D(double [:, :] p0, double [:,:] P0, dict physical_params, dict integr
                         s[m,k] = eta*sigma_squared_full(x[i], v[j] + (k-1)*dv, time + m*dt, physical_params)
                         g[m,k] = theta*a(x[i], v[j]+(k-1)*dv, time + m*dt, physical_params)
 
-                P[j,i] =  (1 - 6*s[0,2] - 6*s[0,1])*P[j,i] +\
-                        (-g[1,2] + 4*s[1,2] + 2*s[1,1]) *p_new_v[j+1]  + (-g[0,2] + 4*s[0,2] + 2*s[0,1])  *p[j+1, i] +\
-                        ( g[1,1] + 2*s[1,2] + 4*s[1,1]) *p_new_v[j]    + ( g[0,1] + 2*s[0,2] + 4*s[0,1])  *p[j, i]
+                Pv[j,i] =  (1 - 6*s[0,2] - 6*s[0,1])*Pv[j,i] +\
+                        (-g[1,2] + 4*s[1,2] + 2*s[1,1]) *p_new_v[j+1]  + (-g[0,2] + 4*s[0,2] + 2*s[0,1])  *pv[j+1, i] +\
+                        ( g[1,1] + 2*s[1,2] + 4*s[1,1]) *p_new_v[j]    + ( g[0,1] + 2*s[0,2] + 4*s[0,1])  *pv[j, i]
 
-                P[j,i] /= 1 + 6*s[1,2] + 6*s[1, 1]
+                Pv[j,i] /= 1 + 6*s[1,2] + 6*s[1, 1]
 
             for j in range(M):
-                p[j, i] = p_new_v[j]
- 
-    return p, P 
+                pv[j, i] = p_new_v[j]
+
+        # # Gives the ball
+        # px = pv.copy()
+        # Px = Pv.copy()
+
+    return px, Px

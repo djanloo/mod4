@@ -1,12 +1,12 @@
 import numpy as np
 from scipy.linalg import expm 
 
-cdef double [:] tridiag(double [:] lower, double [:] diag, double [:] upper, double [:] d):
+cdef double [:] tridiag(double [:] lower, double [:] diag, double [:] upper, double [:] q):
     """Solves the tridiagonal system by Thomas Algorithm"""
     cdef int N = len(diag)
     cdef int i
     cdef double [:] x = np.zeros(N, dtype="float64")
-    cdef double [:] a = lower.copy(), b = diag.copy(), c = upper.copy()
+    cdef double [:] a = lower.copy(), b = diag.copy(), c = upper.copy(), d = q.copy()
 
     for i in range(N-1):
         b[i+1] -= a[i]/b[i]*c[i]

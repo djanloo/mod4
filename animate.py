@@ -6,12 +6,12 @@ from mod4.implicit import  generic_3_step
 from mod4.utils import quad_int, get_quad_mesh, get_lin_mesh
 from mod4.tsai import tsai_2D
 
-from mod4 import setup
+# from mod4 import setup
 FRAMES = 200
 
 
 # integration & physical parameters
-integration_params = dict(  dt=1e-3, n_steps=30, 
+integration_params = dict(  dt=5e-3, n_steps=10, 
                             Lx=10, Lv=10, dx=0.1, dv=0.1, 
                             ADI=False,
                             diffCN=True,
@@ -29,7 +29,7 @@ p0 = analytic(X,V, t0, x0, v0, physical_params)
 # p0 = np.ones((len(x), len(v)))
 # r = np.sqrt(X**2 + V**2)
 # p0 = np.exp( - ((r-0.5)/0.2)**2)
-p0 = np.exp(-((X)**2 + (V-2)**2)/0.5**2)
+p0 = np.exp(-((X)**2 + (V)**2)/0.5**2)
 
 p_num = np.real(p0)
 p_num /= quad_int(p_num , integration_params)
@@ -40,10 +40,11 @@ preproc_func = lambda x: np.log(np.abs(x))
 levels = np.linspace(-40,1, 30)
 
 # Definition of the plots
-fig, axes = plt.subplot_mosaic([["imag"], ["sect"]], height_ratios=[1, 0.2], constrained_layout=True)
+fig, axes = plt.subplot_mosaic([['avg',"imag"], ['sect', "sect"]], height_ratios=[1, 0.2], constrained_layout=True)
 
-axes, ax2 = axes.values()
+axavg, axes, ax2 = axes.values()
 axes.set_aspect('equal')
+axavg.set_aspect('equal')
 
 n_plot = axes.contourf(X, V, preproc_func(p_num), levels=levels, cmap='rainbow')
 
@@ -52,7 +53,7 @@ P = np.zeros((p_num.shape[0], p_num.shape[1]))
 
 
 sections = dict(x=[dict(coord=55)], 
-                v=[dict(coord=70)]
+                v=[dict(coord=55)]
                 )
 
 for c in sections['x']:
@@ -103,6 +104,8 @@ def update(i):
 
     axes.clear()
     mappable=axes.pcolormesh(X, V, preproc_func(p_num), cmap='rainbow', vmin=np.min(levels), vmax = np.max(levels))
+
+    axavg.pcolormesh(X,V, preproc_func(P), cmap='rainbow', vmin=np.min(levels), vmax = np.max(levels))
     axes.contour(X, V, p_num, colors=["r"] + 9*['k'], levels=np.linspace(0, 1, 10))
 
     fig.suptitle(f"IMPLICIT t = {t:4.3f}, norm={quad_int(p_num, integration_params):.2f}")
