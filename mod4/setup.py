@@ -73,6 +73,7 @@ old_dir = os.getcwd()
 packageDir = os.path.dirname(__file__)
 includedDir = [".", packageDir, np.get_include()]
 os.chdir(packageDir)
+print(f"Include dirs are {includedDir}")
 
 extension_kwargs = dict( 
         include_dirs=includedDir,
@@ -181,6 +182,7 @@ else:
     
     print(f"[blue]Cythonizing..[/blue]")
     ext_modules = cythonize(ext_modules, 
+                            nthreads=8,
                             compiler_directives=cython_compiler_directives,
                             include_path=["."],
                             force=False,
@@ -193,7 +195,7 @@ else:
         include_dirs=includedDir,
         ext_modules=ext_modules,
         script_args=["build_ext"],
-        options={"build_ext": {"inplace": True, "force": True}},
+        options={"build_ext": {"inplace": True, "force": True, "parallel":True}},
         )
     
     new_make_infos = {f:cython_compiler_directives for f in summary.keys() if summary[f]['edited']}
