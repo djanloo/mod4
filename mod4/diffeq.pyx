@@ -1,18 +1,6 @@
 # distutils: language = c++
-from libcpp cimport bool
-
-from cython.parallel import prange  
-import numpy as np 
-
-cimport cython   
-from cython.parallel import prange
-cimport numpy as np
-
-from time import perf_counter
-from libc.math cimport sin, fabs
-
-from mod4.utils import quad_int, get_tridiag
-from mod4.utils cimport tridiag
+# from time import perf_counter
+# from libc.math cimport sin, fabs
 
 cdef double a(double x, double v, double time, dict physical_params):
   '''potential/ drag function'''
