@@ -135,7 +135,7 @@ def generic_3_step( double [:,:] p0,
       # Boundary conditions
       p_star[0, i] = 0.0
       p_star[M-1, i] = 0.0
-    ################################### Second evolution: x-drift ######################################
+    # ################################### Second evolution: x-drift ######################################
     for j in range(M):
 
       # Does not depend on i
@@ -174,6 +174,9 @@ def generic_3_step( double [:,:] p0,
       # Boundary conditions
       p_dagger[j, 0] = 0.0
       p_dagger[j, N-1] = 0.0
+
+    # p_dagger = p_star ## TEST!!!!
+
     ################################### Third evolution: diffusion ######################################
     for i in range(N):
       s = eta * sigma_squared(x[i], time, physical_params)

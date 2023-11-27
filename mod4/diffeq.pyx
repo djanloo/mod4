@@ -16,12 +16,11 @@ from mod4.utils cimport tridiag
 
 cdef double a(double x, double v, double time, dict physical_params):
   '''potential/ drag function'''
-  return  -physical_params['omega_squared']*x - physical_params['gamma']*v#*(x**2 - 1)
-  # return 0.0
+  return  (-physical_params['omega_squared']*x - physical_params['gamma']*v)#*(x**2 - 1)
 
 cdef double sigma_squared(double x, double t, dict physical_params):
   '''Noise function'''
-  return 0.0 #physical_params['sigma_squared']
+  return physical_params['sigma_squared']
 
 cdef double sigma_squared_full(double x, double v, double t, dict physical_params):
     return physical_params['sigma_squared']

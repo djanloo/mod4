@@ -11,7 +11,7 @@ FRAMES = 200
 
 
 # integration & physical parameters
-integration_params = dict(  dt=5e-3, n_steps=10, 
+integration_params = dict(  dt=5e-3, n_steps=11, 
                             Lx=10, Lv=10, dx=0.1, dv=0.1, 
                             ADI=False,
                             diffCN=True,
@@ -21,7 +21,7 @@ physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
 X, V = get_quad_mesh(integration_params)
 
 # Initial conditions
-x0, v0 = 0,0
+x0, v0 = 0,2
 t0 = 10
 p0 = analytic(X,V, t0, x0, v0, physical_params)
 
@@ -29,7 +29,7 @@ p0 = analytic(X,V, t0, x0, v0, physical_params)
 # p0 = np.ones((len(x), len(v)))
 # r = np.sqrt(X**2 + V**2)
 # p0 = np.exp( - ((r-0.5)/0.2)**2)
-p0 = np.exp(-((X)**2 + (V)**2)/0.5**2)
+p0 = np.exp(-((X-x0)**2 + (V- v0)**2)/0.5**2)
 
 p_num = np.real(p0)
 p_num /= quad_int(p_num , integration_params)
@@ -49,11 +49,8 @@ axavg.set_aspect('equal')
 n_plot = axes.contourf(X, V, preproc_func(p_num), levels=levels, cmap='rainbow')
 
 
-P = np.zeros((p_num.shape[0], p_num.shape[1]))
-
-
-sections = dict(x=[dict(coord=55)], 
-                v=[dict(coord=55)]
+sections = dict(x=[dict(coord=p0.shape[1]//2)], 
+                v=[dict(coord=p0.shape[0]//2)]
                 )
 
 for c in sections['x']:
@@ -65,28 +62,25 @@ for c in sections['v']:
 # ax2.set_ylim(1e-20,1)
 # ax2.set_yscale('log')
 
-for i in range(P.shape[0]):
-    for j in range(P.shape[1]):
-        P[i,j] = p_num[i,j]
-        c=1
-        if i != P.shape[0]-1:
-            P[i,j] += p_num[i+1, j]
-            c+=1
-        if j != P.shape[1] - 1:
-            P[i,j] += p_num[i, j+1]
-            c+=1
-        if i!=P.shape[0]-1 and j != P.shape[1]-1:
-            P[i,j] += p_num[i+1, j+1]
-            c+=1
-        P[i,j] /= c
+Px = np.zeros((p_num.shape[0], p_num.shape[1]-1))
+Pv = np.zeros((p_num.shape[0]-1, p_num.shape[1]))
+
+for j in range(Px.shape[0]):
+    for i in range(Px.shape[1]):
+        Px[j,i] = 0.5*(p0[j, i] + p0[j, i+1])
+
+for j in range(Pv.shape[0]):
+    for i in range(Pv.shape[1]):
+        Pv[j,i] = 0.5*(p0[j, i] + p0[j+1, i])
 
 mappable=axes.pcolormesh(X, V, preproc_func(p_num), cmap='rainbow', vmin=np.min(levels), vmax = np.max(levels))
+
 plt.colorbar(mappable, ax=axes, label="log(abs(p))")
 
 def update(i):
     if i == 0:
         return
-    global p_num, p_an , P 
+    global p_num, p_an , Px, Pv
 
     t = t0 + i*integration_params['n_steps']*integration_params['dt']
     # Sets the simulation to start at the last time 
@@ -95,7 +89,7 @@ def update(i):
 
     # Numeric
     # p_num , norm , curr = generic_3_step(p_num, physical_params, integration_params, save_norm=True)
-    p_num, P = tsai_2D(p_num, P, physical_params, integration_params)
+    p_num, Px, Pv = tsai_2D(p_num, Px, Pv, physical_params, integration_params, switch_var=i)
     p_num = np.array(p_num)
     # p_num[p_num<0] = 0.0
 
@@ -103,9 +97,10 @@ def update(i):
     # p_num /= norm[-1]
 
     axes.clear()
+    axavg.clear()
     mappable=axes.pcolormesh(X, V, preproc_func(p_num), cmap='rainbow', vmin=np.min(levels), vmax = np.max(levels))
+    axavg.pcolormesh(preproc_func(Pv), cmap='rainbow', vmin=np.min(levels), vmax = np.max(levels))
 
-    axavg.pcolormesh(X,V, preproc_func(P), cmap='rainbow', vmin=np.min(levels), vmax = np.max(levels))
     axes.contour(X, V, p_num, colors=["r"] + 9*['k'], levels=np.linspace(0, 1, 10))
 
     fig.suptitle(f"IMPLICIT t = {t:4.3f}, norm={quad_int(p_num, integration_params):.2f}")
