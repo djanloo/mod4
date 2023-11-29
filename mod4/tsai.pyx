@@ -1,17 +1,9 @@
 # distutils: language = c++
-from libcpp cimport bool
-
-from cython.parallel import prange
+# from libcpp cimport bool
 import numpy as np
-
-cimport cython
-from cython.parallel import prange
 cimport numpy as np
 
-from time import perf_counter
-from libc.math cimport sin
-
-from mod4.utils import quad_int, get_tridiag, get_lin_mesh
+from mod4.utils import get_lin_mesh
 from mod4.utils cimport tridiag
 
 from mod4.diffeq cimport a, sigma_squared_full
