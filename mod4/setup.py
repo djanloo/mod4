@@ -160,6 +160,8 @@ for file in cython_files.keys():
             line_clean = line.strip()
             if line_clean.startswith("#"):
                 continue
+            if 'extern' in line:
+                continue
             if line_clean.startswith('cdef') or \
                 line_clean.startswith("cpdef"):
                 if line_clean.endswith(":"):
