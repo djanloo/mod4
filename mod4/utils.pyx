@@ -39,7 +39,7 @@ def get_quad_mesh(integration_params):
     cdef double [:] v = np.arange(-(M//2), M//2)*dv
     return np.meshgrid(np.array(x), np.array(v)) 
 
-def get_lin_mesh(integration_params):
+cpdef get_lin_mesh(integration_params):
     cdef double L, d
 
     L = integration_params.get('Lx', 0.0)
