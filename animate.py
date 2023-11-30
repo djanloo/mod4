@@ -8,17 +8,17 @@ from mod4.utils import quad_int, get_quad_mesh, get_lin_mesh
 from mod4.tsai import tsai_2D_leapfrog
 
 # from mod4 import setup
-FRAMES = 300
+FRAMES = 800
 
 
 # integration & physical parameters
-integration_params = dict(  dt=3e-3, n_steps=10, 
+integration_params = dict(  dt=3e-3, n_steps=1, 
                             Lx=10, Lv=10, dx=0.1, dv=0.1, 
                             ADI=False,
                             diffCN=True,
                             CN=np.array([True, True, True]))
 
-physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.8**2)
+physical_params = dict(omega_squared=1.0, gamma=0.1, sigma_squared=0.01**2)
 X, V = get_quad_mesh(integration_params)
 
 # Initial conditions
@@ -26,10 +26,10 @@ x0, v0 = -1,-1
 t0 = 0.001
 p0 = analytic(X,V, t0, x0, v0, physical_params)
 
-# p0 = ((X**2 + V**2) <1).astype(float)
-# p0 = np.ones((len(x), len(v)))
+# p0 = ((X**2 + V**2) <2).astype(float)
+
 r = np.sqrt(X**2 + V**2)
-p0 = np.exp( - ((r-1)/0.2)**2)
+p0 = np.exp( - ((r-2)/0.2)**2)
 # p0 = np.exp(-((X-x0)**2 + (V- v0)**2)/0.5**2)
 
 p_num = np.real(p0)
@@ -38,7 +38,7 @@ p_an = p0
 
 # What to plot
 preproc_func = lambda x: x
-levels = preproc_func(np.linspace(1e-40 , 0.4, 30))
+levels = preproc_func(np.linspace(1e-40 , 0.8, 30))
 
 # Definition of the plots
 fig, axes = plt.subplot_mosaic([['avgx','avgv', "imag"], ['sect', "sect", 'sect']], height_ratios=[1, 0.2], constrained_layout=True, figsize=(10,5))
@@ -110,11 +110,11 @@ def update(i):
     axavgx.contour(preproc_func(Px), colors=["r"] + 9*['k'], levels=np.linspace(0, 1, 10))
     axavgv.contour(preproc_func(Pv), colors=["r"] + 9*['k'], levels=np.linspace(0, 1, 10))
 
-    axes.contour(X, V, p_num, colors=["r"] + 9*['k'], levels=np.linspace(0, 1, 10))
+    axes.contour(X, V, p_num, colors=['k'], levels=levels[::3]+1e-5)
 
     fig.suptitle(f"evolving: {'X' if switch==0 else 'V'}\nt = {t:4.3f}, norm={quad_int(p_num, integration_params):.2f}")
-    axavgx.set_title("x")
-    axavgv.set_title("v")
+    axavgx.set_title("AVG - X")
+    axavgv.set_title("AVG - V")
 
     for c in sections['x']:
         axes.plot(X[:, c['coord']], V[:, c['coord']])
@@ -128,5 +128,5 @@ def update(i):
 
 
 anim = FuncAnimation(fig, update, frames=FRAMES, interval=3/60*1e3, blit=False,)
-anim.save("brutal_update_1step_vanderpol.mp4", writer='ffmpeg')
+# anim.save("brutal_update_vanderpol_vjhgjh.mp4", writer='ffmpeg')
 plt.show()

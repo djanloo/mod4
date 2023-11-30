@@ -406,7 +406,7 @@ def tsai_2D_leapfrog(double [:, :] p0, double [:,:] P0x, double [:,:] P0v,
     cdef double Lv,dv
     Lv,dv = map(integration_params.get, ["Lv", "dv"]) 
     cdef int  M = int(Lv/dv)
-    cdef double [:] v = get_lin_mesh(dict(Lv=Lv, dv=dv))
+    cdef double [:] v = np.array(get_lin_mesh(dict(Lv=Lv, dv=dv)))
     cdef int j=0
 
     ## Space - x
@@ -425,11 +425,15 @@ def tsai_2D_leapfrog(double [:, :] p0, double [:,:] P0x, double [:,:] P0v,
     cdef double [:] lower_x, diagonal_x, upper_x, b_x
     lower_x, diagonal_x, upper_x, b_x = np.ones(N), np.ones(N), np.ones(N), np.ones(N)
 
+    print(f"v0 = {v[0]}, vM = {v[M]}")
+    print(f"x0 = {x[0]}, xN = {x[N]}")
+
     # MAIN LOOP
     for time_index in range(n_steps):
         time = t0 + time_index*dt
 
         if switch % 2 == 0:
+
             ######################### X - GRID UPDATE ####################
             # For each value of v_j
             for j in range(1,M-1): # Extrema are Dirichlet-fixed
@@ -451,11 +455,11 @@ def tsai_2D_leapfrog(double [:, :] p0, double [:,:] P0x, double [:,:] P0v,
 
             ####################### V -BRUTAL AVG UPDATE ##################
             for i in range(N):
-                brutal_P_update(Pv[:, i], p_new[:,i])
-                # update_averages(Pv[:, i], p[:, i], p_new[:, i],
-                #                 x[i], UNUSED_VAR, time,
-                #                 physical_params, integration_params,
-                #                 1)
+                # brutal_P_update(Pv[:, i], p_new[:,i])
+                update_averages(Pv[:, i], p[:, i], p_new[:, i],
+                                x[i], UNUSED_VAR, time,
+                                physical_params, integration_params,
+                                1)
             
             p = p_new.copy() 
 
@@ -481,11 +485,11 @@ def tsai_2D_leapfrog(double [:, :] p0, double [:,:] P0x, double [:,:] P0v,
 
             ######################## X - AVG UPDATE #################
             for j in range(M):
-                brutal_P_update(Px[j, :], p_new[j,:])
-                # update_averages(Px[j,:], p[j, :], p_new[j, :],
-                #                 UNUSED_VAR, v[j], time,
-                #                 physical_params, integration_params,
-                #                 0)
+                # brutal_P_update(Px[j, :], p_new[j,:])
+                update_averages(Px[j,:], p[j, :], p_new[j, :],
+                                UNUSED_VAR, v[j], time,
+                                physical_params, integration_params,
+                                0)
 
             p = p_new.copy()
 

@@ -4,7 +4,7 @@
 
 cdef double a(double x, double v, double time, dict physical_params):
   '''potential/ drag function'''
-  return  (-physical_params['omega_squared']*x - physical_params['gamma']*v)*(x**2 - 1)
+  return  -physical_params['omega_squared']*x - physical_params['gamma']*v#*(x**2 - 1)
 
 cdef double sigma_squared(double x, double t, dict physical_params):
   '''Noise function'''
