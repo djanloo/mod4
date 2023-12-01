@@ -4,9 +4,11 @@ import numpy as np
 cimport numpy as np
 
 from mod4.utils cimport get_lin_mesh
-from mod4.utils cimport tridiag
+from mod4.utils cimport tridiag, set_dirichlet
 
 from mod4.diffeq cimport a, sigma_squared_full
+
+from mod4.implicit import generic_3_step
 
 DEF UNUSED_VAR = 1e20
 
@@ -450,24 +452,6 @@ cdef compensative_P_update_explicit(double [:] P,
             P[k] -= thetino*(a(x, vvs[k]+dv, time,physical_params)*P[k+1] -  a(x, vvs[k]-dv, time,physical_params)*P[k-1])
             P[k] += etino*(P[k+1] - 2*P[k] + P[k-1])
      
-cdef set_dirichlet( double [:] lower, 
-                    double[:] diag, 
-                    double[:] upper, 
-                    double [:] b):
-    cdef int M = len(diag)
-
-    ## BCs left
-    lower[0] = 0.0
-    upper[0] = 0.0
-    diag[0] = 1.0
-    b[0] = 0.0
-
-    ## BCs right
-    lower[M-2] = 0.0
-    upper[M-2] = 0.0
-    diag[M-1] = 1.0
-    b[M-1] = 0.0
-    return
 
 def tsai_2D_leapfrog(double [:, :] p0, double [:,:] P0x, double [:,:] P0v, 
                     dict physical_params, dict integration_params, switch=0):
@@ -510,75 +494,77 @@ def tsai_2D_leapfrog(double [:, :] p0, double [:,:] P0x, double [:,:] P0v,
 
         ######################### X - GRID UPDATE ####################
         # For each value of v_j
-        if int(5*time) % 2 == 0:
-            for j in range(1,M-1): # Extrema are Dirichlet-fixed
+        for j in range(1,M-1): # Extrema are Dirichlet-fixed
 
-                advection_diffusion_matrix( lower_x, diagonal_x, upper_x, b_x, 
-                                            p[j, :], Px[j, :], 
-                                            UNUSED_VAR, v[j], time,
-                                            physical_params, integration_params,
-                                            0)
-                set_dirichlet(lower_x, diagonal_x, upper_x, b_x)
-                p_new[j, :] = tridiag(lower_x, diagonal_x, upper_x, b_x)
-            
-            ###################### X - AVG UPDATE ##################
-            for j in range(M):
-                update_averages(Px[j,:], p[j, :], p_new[j, :],
-                                UNUSED_VAR, v[j], time,
-                                physical_params, integration_params,
-                                0)
+            advection_diffusion_matrix( lower_x, diagonal_x, upper_x, b_x, 
+                                        p[j, :], Px[j, :], 
+                                        UNUSED_VAR, v[j], time,
+                                        physical_params, integration_params,
+                                        0)
+            set_dirichlet(lower_x, diagonal_x, upper_x, b_x)
+            p_new[j, :] = tridiag(lower_x, diagonal_x, upper_x, b_x)
+        
+        ###################### X - AVG UPDATE ##################
+        for j in range(M):
+            update_averages(Px[j,:], p[j, :], p_new[j, :],
+                            UNUSED_VAR, v[j], time,
+                            physical_params, integration_params,
+                            0)
 
-            ####################### V - COMPENSATIVE AVG UPDATE ##################
-            # for j in range(1, M-2):
-            #     brutal_P_update(Pv[:, i], p_new[:,i])
-            #     update_averages(Pv[j,:], p[j, :], p_new[j, :],
+        ####################### V - COMPENSATIVE AVG UPDATE ##################
+        for j in range(1, M-2):
+            # brutal_P_update(Pv[:, i], p_new[:,i])
+            # update_averages(Pv[j,:], p[j, :], p_new[j, :],
+            #                 UNUSED_VAR, v[j], time,
+            #                 physical_params, integration_params,
+            #                 0)
+            # compensative_P_update_implicit(Pv[j,:], 
             #                     UNUSED_VAR, v[j], time,
-            #                     physical_params, integration_params,
+            #                     integration_params, physical_params, 
             #                     0)
-            #     compensative_P_update_implicit(Pv[j,:], 
-            #                         UNUSED_VAR, v[j], time,
+            Pv = generic_3_step(Pv, physical_params, integration_params)
+
+        
+        p = p_new.copy() 
+
+        ####################################################################################### SPLIT
+        ######################### V - GRID UPDATE ####################
+        # For each value of x_i
+        for i in range(1,N-1): # Extrema are Dirichlet-fixed
+        
+            advection_diffusion_matrix(lower_v, diagonal_v, upper_v, b_v, 
+                                        p[:, i], Pv[:, i], 
+                                        x[i], UNUSED_VAR, time,
+                                        physical_params, integration_params,
+                                        1) 
+            set_dirichlet(lower_v, diagonal_v, upper_v, b_v)
+            p_new[:, i] = tridiag(lower_v, diagonal_v, upper_v, b_v)
+
+        ####################### V - AVG UPDATE ##################
+        for i in range(N):
+            update_averages(Pv[:,i], p[:, i], p_new[:, i],
+                            x[i],  UNUSED_VAR, time,
+                            physical_params, integration_params,
+                            1)
+
+        ####################### X - COMPENSATIVE AVG UPDATE #################
+        for i in range(1,N-2):
+            # brutal_P_update(Px[j, :], p_new[j,:])
+            # update_averages(Px[:,i], p[:, i], p_new[:, i],
+            #                 x[i], UNUSED_VAR, time,
+            #                 physical_params, integration_params,
+            #                 1)
+            # compensative_P_update_implicit(Px[:,i], 
+            #                         x[i], UNUSED_VAR, time,
             #                         integration_params, physical_params, 
-            #                         0)
-            
-            p = p_new.copy() 
-        else:
-            ####################################################################################### SPLIT
-            ######################### V - GRID UPDATE ####################
-            # For each value of x_i
-            for i in range(1,N-1): # Extrema are Dirichlet-fixed
-            
-                advection_diffusion_matrix(lower_v, diagonal_v, upper_v, b_v, 
-                                            p[:, i], Pv[:, i], 
-                                            x[i], UNUSED_VAR, time,
-                                            physical_params, integration_params,
-                                            1) 
-                set_dirichlet(lower_v, diagonal_v, upper_v, b_v)
-                p_new[:, i] = tridiag(lower_v, diagonal_v, upper_v, b_v)
+            #                         1)
+            Px = generic_3_step(Px, physical_params, integration_params)
 
-            ####################### V - AVG UPDATE ##################
-            for i in range(N):
-                update_averages(Pv[:,i], p[:, i], p_new[:, i],
-                                x[i],  UNUSED_VAR, time,
-                                physical_params, integration_params,
-                                1)
+        p = p_new.copy()
 
-            ####################### X - COMPENSATIVE AVG UPDATE #################
-            # for i in range(1,N-2):
-            #     brutal_P_update(Px[j, :], p_new[j,:])
-            #     update_averages(Px[:,i], p[:, i], p_new[:, i],
-            #                     x[i], UNUSED_VAR, time,
-            #                     physical_params, integration_params,
-            #                     1)
-            #     compensative_P_update_implicit(Px[:,i], 
-            #                             x[i], UNUSED_VAR, time,
-            #                             integration_params, physical_params, 
-            #                             1)
-
-            p = p_new.copy()
-
-            # for i in range(N-2):
-            #     for j in range(M-2):
-            #         Px[j,i] = Pv[j,i]
+        # for i in range(N-2):
+        #     for j in range(M-2):
+        #         Px[j,i] = Pv[j,i]
         
     return p, Px, Pv
 

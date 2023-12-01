@@ -235,6 +235,28 @@ def generic_3_step( double [:,:] p0,
         currents['bottom'][time_index] += 0.5*physical_params['sigma_squared']**2*( (p[1,i] - p[0,i])/dv )*dx
   return p, norm, currents
 
+cdef zorzano_x(double [:,:] p, double  v, dict physical_params, dict integration_params):
+  ## Time
+  cdef double dt   = integration_params['dt']
+  cdef unsigned int n_steps = integration_params['n_steps']
+  cdef double t0    = physical_params.get('t0', 0.0)
+
+  ## Space
+  cdef double dx = integration_params['dx']
+  cdef unsigned int time_index = 0, i
+
+  cdef double theta = 0.5 * dt/dx 
+  
+  cdef double [:] lower, diagonal, upper, b
+
+  for i in range(N):
+        lower[i] = - theta * v
+        upper[i] =   theta * v
+
+        b[i] = p[i]
+
+      # Solves the tridiagonal system for the row
+      p[j, :] =  tridiag(lower_x, diagonal_x, upper_x, b_x)
 
 
 def funker_plank_original( double [:,:] p0,

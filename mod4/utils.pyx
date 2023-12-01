@@ -1,6 +1,25 @@
 import numpy as np
 from scipy.linalg import expm 
 
+cdef set_dirichlet( double [:] lower, 
+                    double[:] diag, 
+                    double[:] upper, 
+                    double [:] b):
+    cdef int M = len(diag)
+
+    ## BCs left
+    lower[0] = 0.0
+    upper[0] = 0.0
+    diag[0] = 1.0
+    b[0] = 0.0
+
+    ## BCs right
+    lower[M-2] = 0.0
+    upper[M-2] = 0.0
+    diag[M-1] = 1.0
+    b[M-1] = 0.0
+    return
+
 cdef double [:] tridiag(double [:] lower, double [:] diag, double [:] upper, double [:] q):
     """Solves the tridiagonal system by Thomas Algorithm"""
     cdef int N = len(diag)

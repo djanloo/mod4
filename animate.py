@@ -18,7 +18,7 @@ integration_params = dict(  dt=3e-3, n_steps=10,
                             diffCN=True,
                             CN=np.array([True, True, True]))
 
-physical_params = dict(omega_squared=1.0, gamma=0.1, sigma_squared=0.1**2)
+physical_params = dict(omega_squared=1.0, gamma=2.1, sigma_squared=0.01**2)
 X, V = get_quad_mesh(integration_params)
 
 # Initial conditions
@@ -89,10 +89,11 @@ def update(i):
     physical_params['t0'] = i*integration_params['n_steps']*integration_params['dt']
 
     # Numeric
-    # p_num , norm , curr = generic_3_step(p_num, physical_params, integration_params, save_norm=True)
+    p_num , norm , curr = generic_3_step(p_num, physical_params, integration_params, save_norm=True)
     switch = i#(i//20)%2
     print(f'switch {switch}')
     p_num, Px, Pv = tsai_2D_leapfrog(p_num, Px, Pv, physical_params, integration_params, switch=switch)
+    # p_num , norm , curr = generic_3_step(p_num, physical_params, integration_params, save_norm=True)
     p_num = np.array(p_num)
     # p_num[p_num<0] = 0.0
 
