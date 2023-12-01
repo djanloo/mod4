@@ -8,17 +8,17 @@ from mod4.utils import quad_int, get_quad_mesh, get_lin_mesh
 from mod4.tsai import tsai_2D_leapfrog
 
 # from mod4 import setup
-FRAMES = 800
+FRAMES = 400
 
 
 # integration & physical parameters
-integration_params = dict(  dt=3e-3, n_steps=1, 
+integration_params = dict(  dt=3e-3, n_steps=10, 
                             Lx=10, Lv=10, dx=0.1, dv=0.1, 
                             ADI=False,
                             diffCN=True,
                             CN=np.array([True, True, True]))
 
-physical_params = dict(omega_squared=1.0, gamma=0.1, sigma_squared=0.01**2)
+physical_params = dict(omega_squared=1.0, gamma=0.1, sigma_squared=0.1**2)
 X, V = get_quad_mesh(integration_params)
 
 # Initial conditions
@@ -29,7 +29,7 @@ p0 = analytic(X,V, t0, x0, v0, physical_params)
 # p0 = ((X**2 + V**2) <2).astype(float)
 
 r = np.sqrt(X**2 + V**2)
-p0 = np.exp( - ((r-2)/0.2)**2)
+p0 = np.exp( - ((r-2)/0.5)**2)
 # p0 = np.exp(-((X-x0)**2 + (V- v0)**2)/0.5**2)
 
 p_num = np.real(p0)
@@ -38,7 +38,7 @@ p_an = p0
 
 # What to plot
 preproc_func = lambda x: x
-levels = preproc_func(np.linspace(1e-40 , 0.8, 30))
+levels = preproc_func(np.linspace(1e-40 , 0.1, 30))
 
 # Definition of the plots
 fig, axes = plt.subplot_mosaic([['avgx','avgv', "imag"], ['sect', "sect", 'sect']], height_ratios=[1, 0.2], constrained_layout=True, figsize=(10,5))
@@ -128,5 +128,5 @@ def update(i):
 
 
 anim = FuncAnimation(fig, update, frames=FRAMES, interval=3/60*1e3, blit=False,)
-# anim.save("brutal_update_vanderpol_vjhgjh.mp4", writer='ffmpeg')
+# anim.save("weird_symmetry4", writer='ffmpeg')
 plt.show()
